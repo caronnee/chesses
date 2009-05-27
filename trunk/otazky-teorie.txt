@@ -1,0 +1,125 @@
+Otázky ke zkou¹ce Programování v UNIXu 
+
+verze: 23.9.2007 
+
+A) Vývojové nástroje
+--------------------
+
+1. Popi¹te èinnost kompilátoru jazyka C a linkeru.
+
+2. Vysvìtlete princip utility make a napi¹te pøíklad jednoduchého makefile
+pro pøeklad a slinkování programu v C.
+
+B) Jádro a C API UNIXu
+----------------------
+
+1. Vysvìtlete význam parametrù funkce main() a promìnné environ. Jak se
+zpracovávají argumenty programu pomocí funkce getopt()? 
+
+2. Vysvìtlete význam pojmù proces, vlákno (thread), program. Èím se li¹í
+proces a vlákno?
+
+3. Vysvìtlete pojmy knihovní funkce a systémové volání. Popi¹te konvenci,
+podle které systémová volání a knihovní funkce oznamují úspì¹né ukonèení
+nebo chybu.
+
+4. Co obsahují soubory /etc/passwd a /etc/group? Kdy a jak pou¾ívá Unix
+informace z tìchto souborù.
+
+5. Jak se pou¾ívá identifikace vlastníka a skupiny pro testování
+pøístupových práv? Jaký je rozdíl mezi reálným a efektivním vlastníkem
+procesu?
+
+C) Systém souborù
+-----------------
+
+1. Jaké objekty jsou v UNIXu pøístupné pomocí rozhraní systému souborù? Jaký
+je rozdíl mezi znakovými a blokovými zaøízeními?
+
+2. Popi¹te strukturu svazku typu s5 a jeho vylep¹ení (ufs).
+
+3. Vysvìtlete princip navigace ve struktuøe adresáøù, tj. jak jádro najde
+podle cesty k souboru pøíslu¹né datové bloky. Vysvìtlete rozdíl mezi pevnými
+(hardlink) a symbolickými (symlink) odkazy na soubory.
+
+4. Jaká jsou pøístupová práva k souborùm? Co je to propùjèování práv
+(set UID)?
+
+5. Jak procesy pøistupují k otevøeným souborùm? Jak se li¹í deskriptor a
+otevøení souboru?
+
+6. Co je to virtual file system? K èemu slou¾í a jaký je princip jeho
+fungování?
+
+7. Jaký je vztah diskového oddílu a svazku? Jak probíhá vytvoøení, kontrola
+konzistence, pøipojení a odpojení svazku?
+
+D) Procesy a roury
+------------------
+
+1. Popi¹te pamì»ový prostor procesu v u¾ivatelském re¾imu a v re¾imu jádra.
+
+2. Nakreslete a popi¹te stavový diagram procesu
+
+3. Popi¹te základy mechanismu plánování procesù. Jaké jsou prioritní tøídy?
+
+4. Popi¹te mechanismus mapování souborù do pamìti. Popi¹te, jak lze za bìhu
+programu získat pøístup k promìnným a funkcím definovaným v nìjaké dynamické
+sdílené knihovnì.
+
+E) Signály
+----------
+
+1. Co jsou to signály? Jak mù¾e být pro proces vygenerován signál? Jaký je
+rozdíl mezi posláním signálu procesu a vláknu?
+
+2. Jaké jsou mo¾nosti o¹etøení signálù? Jak se nastavuje o¹etøení signálù
+(handlery, blokování) pro proces a pro vlákna?
+
+F) Vlákna
+---------
+
+1. Co je to vlákno, jak se li¹í od procesu? Které atributy jsou spoleèné pro
+proces, které jsou privátní pro ka¾dé vlákno? Jak je mo¾né vytvoøit globální
+promìnnou privátní pro jedno vlákno? 
+
+2. Popi¹te postup pøi vytvoøení a zru¹ení vlákna. Jak fungují destruktory
+klíèovaných hodnot a zásobník úklidových handlerù? fork() a vlákna.
+
+3. Uveïte nástroje pro synchronizaci vláken.
+
+G) Synchronizace a zamykání
+---------------------------
+
+1. Vysvìtlete vznik konfliktu pøi pøístupu ke sdíleným datùm a jeho øe¹ení
+pomocí zamykání. Jak mù¾e vzniknout deadlock? Popi¹te zamykání souborù pomocí
+fcntl().
+
+2. Vysvìtlete zamykání pomocí lock souborù.
+
+H) IPC
+------
+
+1. Popi¹te semafory, implementované v UNIX System V IPC.
+
+I) Sítì
+-------
+
+1. Popi¹te èinnost serveru a klienta (posloupnost systémových volání) pro
+spojované sí»ové slu¾by.
+
+2. Popi¹te èinnost serveru a klienta (posloupnost systémových volání) pro
+nespojované sí»ové slu¾by.
+
+3. Co je to soket? Jaké jsou varianty adresace soketù (v rámci jednoho
+stroje a po síti)? Jaké funkce (uveïte aspoò nìkteré) slou¾í pro pøevod mezi
+èíselnými a symbolickými jmény protokolù, portù a IP adres? Proè se
+pou¾ívají funkce pro konverzi mezi lokálním a sí»ovým poøadím bajtù?
+
+4. Popi¹te varianty sekvenèní a paralelní obsluhy klientù TCP serveru.
+
+5. Jak funguje inetd? Jak funguje obsluha více klientù UDP serveru?
+
+6. Jak lze èekat na pøíchod dat z nìkolika deskriptorù souborù zároveò? Jak
+byste tuto funkci pou¾ili pøi implementaci sí»ového serveru, který obsluhuje
+nìkolik klientù zároveò jedním procesem bez pou¾ití vláken?

@@ -1,0 +1,51 @@
+#include <iostream>
+#include <SDL/SDL.h>
+
+#define SDL_SUBSYSTEMS SDL_INIT_VIDEO
+
+#define WIN_TITLE "3 player chess"
+
+// Pro snadnejsi vypisy flagy "zformatovane" do retezce
+#define STR_FLAGS "SDL_HWSURFACE"
+
+#define WIDTH 430
+#define HEIGHT 400
+#define BPP 32
+#define FLAGS SDL_HWSURFACE
+/*
+ * Globalni promenne
+ */
+
+SDL_Surface *g_screen;
+
+
+/*
+ * Vypise parametry vytvareneho okna
+ */
+int main(int argc, char * args[])
+{
+	if(SDL_Init(SDL_INIT_VIDEO)==-1)
+	{
+		std::cout << "Nende grafika" <<std::endl;
+		SDL_Quit();
+		return 0;
+	}
+	int bpp = SDL_VideoModeOK(WIDTH, HEIGHT, BPP, FLAGS);
+	if (bpp ==0)
+	{
+		std::cout << "ble!"<<std::endl;
+		SDL_Quit();
+		return 0;
+	}
+	g_screen = SDL_SetVideoMode(WIDTH, HEIGHT, BPP, FLAGS);
+	if (g_screen == NULL)
+	{
+		std::cout << "bleblebl!" << std::endl;
+		SDL_Quit();
+		return 0;
+	}
+	SDL_WM_SetCaption(WIN_TITLE, NULL);
+
+	SDL_Quit();
+	return 0;
+}
