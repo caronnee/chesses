@@ -1,6 +1,6 @@
 #include "./board.h"
-#define CENTER_X 213
-#define CENTER_Y 200
+#define CENTER_X 213 //TODO spravit to ako image->w
+#define CENTER_Y 200 //	stejne
 #define NUM_OF_PLACES 48
 #define RADIUS 200
 
@@ -11,7 +11,8 @@ enum Tokens
 	BISHOP, 
 	JUMPER, 
 	TOWER, 
-	PAWN 
+	PAWN,
+	NONE	
 };
 
 int Place::occupied()
@@ -86,7 +87,7 @@ SDL_Surface * Figure::display_name()
 Figure::Figure()
 {
 	moved_ = false;
-	owner = 0; //este nikto nemam zabookovanu figurku
+	owner = -1; //este nikto nemam zabookovanu figurku
 	active = true;
 	display_token = NULL;
 	choose = SDL_LoadBMP("./images/selected.bmp");
@@ -259,8 +260,6 @@ Board::Board()
 			{
 				board[player][x][y].set(rot_x * cos(2*3.14*(player)/3) - rot_y*sin(2*3.14*(player)/3)+ CENTER_X,
 						rot_x * sin(2*3.14*(player)/3) + rot_y*cos(2*3.14*(player)/3)+ CENTER_Y);
-				std::cout <<"ro_x1:" << rot_x << std::endl;
-				std::cout <<"ro_x2:" << rot_x << std::endl;
 				board[player][7-x][y].set(rot_x_2 * cos(2*3.14*(player)/3) - rot_y*sin(2*3.14*(player)/3)+ CENTER_X,
 						rot_x_2 * sin(2*3.14*(player)/3) + rot_y*cos(2*3.14*(player)/3)+ CENTER_Y);
 
@@ -269,16 +268,16 @@ Board::Board()
 	}
 	for (int i = 0; i< 48; i+=16)
 	{
-		figures[i] = new Tower(i/16 + 1 );
-		figures[i+1] = new Jumper(i/16 + 1 );
-		figures[i+2] = new Bishop(i/16 + 1 );
-		figures[i+3] = new King(i/16 + 1 );
-		figures[i+4] = new Queen(i/16 + 1 );
-		figures[i+5] = new Bishop(i/16 + 1 );
-		figures[i+6] = new Jumper(i/16 + 1 );
-		figures[i+7] = new Tower(i/16 + 1 );
+		figures[i] = new Tower(i/16 );
+		figures[i+1] = new Jumper(i/16  );
+		figures[i+2] = new Bishop(i/16  );
+		figures[i+3] = new King(i/16  );
+		figures[i+4] = new Queen(i/16  );
+		figures[i+5] = new Bishop(i/16  );
+		figures[i+6] = new Jumper(i/16  );
+		figures[i+7] = new Tower(i/16  );
 		for (int j = 0; j < 8; j++)
-			figures[i+8+j] = new Pawn(i/16 + 1 );
+			figures[i+8+j] = new Pawn(i/16 );
 	}//nacitane vsetky spravne so svojimi tokenmi
 	for ( int i = 0; i< 96 ; i++)
 		access[i] = false;
@@ -342,9 +341,10 @@ void Board::draw_board()
 	SDL_Flip(screen);
 }
 
-void Board::pick_up_figure(int x, int y)
+//TODO 
+bool Board::pick_up_figure(int x, int y)
 {
-	printf("Suradnice %d %d\n", x,y);
+//	printf("Suradnice %d %d\n", x,y);
 	int player, x_coord, y_coord, x_old, y_old, ID, choosed_ID = -1;
 	x_coord = x;
 	y_coord = y;
@@ -359,7 +359,6 @@ void Board::pick_up_figure(int x, int y)
 		{
 			int diff_x = board[0][j][0].get_x() - x_coord; 
 			//printf("\tdiff : %d, [%d %d 0] %d %d \n",diff_x, i, j, board[i][j][0].get_x(), x_coord);
-
 			if ((diff_x <= TOKEN_WIDTH / 2)&&(diff_x>= -TOKEN_WIDTH/2)) //ak je rozdiel X dostatocne maly, potom sme kde na tejto strane	
 				for (int k = 0; k < BOARD_Y_MAX; k++)
 				{
@@ -412,6 +411,7 @@ void Board::pick_up_figure(int x, int y)
 		}
 	}
 	SDL_Flip(screen);
+	return false;
 }
 void Board::display_move(int player_part, int x, int y)
 {
@@ -450,13 +450,25 @@ void Board::display_move(int player_part, int x, int y)
 void Board::suggest_move_pawn(int player_part,int x, int y)
 {
 	int ID = board[player_part][x][y].occupied();
+	std::cout <<"part:"<< player_part << ", owner" << figures[ID]->owner << std::endl;
 	if (!figures[ID]->moved()) //moze byt este o jedno policko
 	{
 		suggest_figure(ID,player_part,x,y+2);
 	}
 	if (player_part == figures[ID]->owner) //ak je na svojom vlastnom hristi, checkuj, ci sa moze pohnut o policko
 	{
+		std::cout <<"echm! " << std::endl;
 		y++;
+	}
+	else 
+		y--;
+	if (y >3) //zisti, na ktory cast by to slo, ci po alebo proti hodinam
+	{
+		y = 3;
+		if ( x < 4)
+			player_part = (player_part + 1)%3;
+		else
+			player_part = (player_part + 2)%3;
 	}
 	suggest_figure(ID,player_part,x,y);
 }

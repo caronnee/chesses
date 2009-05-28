@@ -116,5 +116,5 @@ class Board
 public:
 	Board();	
 	void draw_board(); //prejde cez vsetky figurky, co su na boarde a splitne ich na spravne miesto
-	void pick_up_figure(int x, int y); //vyberie danu figurku a zisti, kde vsade sa moze hybat, x, su mysove suradnice
+	bool pick_up_figure(int x, int y); //vyberie danu figurku a zisti, kde vsade sa moze hybat, x, su mysove suradnice
 };

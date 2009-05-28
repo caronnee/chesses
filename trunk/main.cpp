@@ -20,6 +20,7 @@
 
 SDL_Surface *screen;
 Board * chessboard;
+bool done;
 /*
  * Inicializacni funkce
  */
@@ -131,7 +132,8 @@ int ProcessEvent()
 				break;
 			case SDL_MOUSEBUTTONDOWN:
 				{
-					chessboard->pick_up_figure(event.button.x, event.button.y);
+					if(!done)
+						done = chessboard->pick_up_figure(event.button.x, event.button.y);
 					break;
 				}
 
@@ -160,6 +162,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	done = false;
 	// Hlavni smycka programu
 	int done = false;
 	/*SDL_Surface * obr = SDL_LoadBMP("./chessboard.bmp");
