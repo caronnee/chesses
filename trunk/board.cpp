@@ -1,5 +1,4 @@
 #include "./board.h"
-
 #define CENTER_X 213
 #define CENTER_Y 200
 #define NUM_OF_PLACES 48
@@ -105,6 +104,8 @@ King::King(int o)
 	s+=".bmp";
 	token = SDL_LoadBMP(s.c_str());
 	name =  SDL_LoadBMP("./images/king.bmp");
+	if (name ==NULL) std::cerr << "huups!" <<std::endl;
+	if (token ==NULL) std::cerr << "huups2!" <<std::endl;
 	//SDL_SetColorKey(token,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	//SDL_SetColorKey(name,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	display_token = token;
@@ -124,6 +125,8 @@ Queen::Queen(int o)
 	s+=".bmp";
 	token = SDL_LoadBMP(s.c_str());
 	name =  SDL_LoadBMP("./images/queen.bmp");
+	if (name ==NULL) std::cerr << "huups!" <<std::endl;
+	if (token ==NULL) std::cerr << "huups2!" <<std::endl;
 	//SDL_SetColorKey(token,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	//SDL_SetColorKey(name,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	display_token = token;
@@ -143,6 +146,8 @@ Bishop::Bishop(int o)
 	s+=".bmp";
 	token = SDL_LoadBMP(s.c_str());
 	name =  SDL_LoadBMP("./images/bishop.bmp");
+	if (name ==NULL) std::cerr << "huups!" <<std::endl;
+	if (token ==NULL) std::cerr << "huups2!" <<std::endl;
 	//SDL_SetColorKey(token,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	//SDL_SetColorKey(name,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	display_token = token;
@@ -163,6 +168,8 @@ Jumper::Jumper(int o)
 	s+=".bmp";
 	token = SDL_LoadBMP(s.c_str());
 	name =  SDL_LoadBMP("./images/jumper.bmp");
+	if (name ==NULL) std::cerr << "huups!" <<std::endl;
+	if (token ==NULL) std::cerr << "huups2!" <<std::endl;
 	//SDL_SetColorKey(token,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	//SDL_SetColorKey(name,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	display_token = token;
@@ -183,6 +190,8 @@ Tower::Tower(int o)
 	s+=".bmp";
 	token = SDL_LoadBMP(s.c_str());
 	name =  SDL_LoadBMP("./images/tower.bmp");
+	if (name ==NULL) std::cerr << "huups!" <<std::endl;
+	if (token ==NULL) std::cerr << "huups2!" <<std::endl;
 	//SDL_SetColorKey(token,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	//SDL_SetColorKey(name,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	display_token = token;
@@ -204,6 +213,8 @@ Pawn::Pawn(int o)
 	token = SDL_LoadBMP(s.c_str());
 	name =  SDL_LoadBMP("./images/pawn.bmp");
 	promotion = PAWN;
+	if (name ==NULL) std::cerr << "huups!" <<std::endl;
+	if (token ==NULL) std::cerr << "huups2!" <<std::endl;
 	//SDL_SetColorKey(token,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	//SDL_SetColorKey(name,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	display_token = token;
@@ -319,7 +330,7 @@ void Board::draw_board()
 				int ID = board[p][xx][y].occupied();
 				if ( ID >= 0 )
 				{
-				//	std::cout << p <<" " << xx << " "<<y << std::endl;
+					//std::cout << ID <<std::endl;
 					display_figure(ID, p, xx,y);
 				}
 			}
