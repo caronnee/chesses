@@ -236,35 +236,37 @@ Board::Board()
 	choosed_x = -1; //este sme nic nevybrali
 	choosed_y = -1;
 	choosed_p = -1;
-	for (int player = 0; player < 3; player++)
-		for (int x =0; x<4; x++)
+	for (int x =0; x<4; x++)
+	{
+		coord_x = CENTER_X + (x-4)*size_x;
+		coord_y_l_last = coord_y_l;
+		coord_y_l = coord_y_l_last + (RADIUS*1.73)/24;
+		for (int y = 0; y < 4; y++)
 		{
-			coord_x = CENTER_X + (x-4)*size_x;
-			coord_y_l_last = coord_y_l;
-			coord_y_l = coord_y_l_last + (RADIUS*1.73)/24;
-			for (int y = 0; y < 4; y++)
-			{
-				int pom2 = coord_y_l/4; 
-				int pom1 = coord_y_l_last/4; //velkost kroku na oboch stranach
-				int coord_y;
-				int diff = (pom2 - pom1)/2;//prirastok
+			int pom2 = coord_y_l/4; 
+			int pom1 = coord_y_l_last/4; //velkost kroku na oboch stranach
+			int coord_y;
+			int diff = (pom2 - pom1)/2;//prirastok
 
-				if (x<4)	
-					coord_y = base - (pom1*y + pom1/2  + diff); 
-				else
-					coord_y = base - (pom1*y + pom2/2  + diff);
-				int rot_x = coord_x + size_x/2 - CENTER_X;
-				int rot_y = coord_y - CENTER_Y;
+			if (x<4)	
+				coord_y = base - (pom1*y + pom1/2  + diff); 
+			else
+				coord_y = base - (pom1*y + pom2/2  + diff);
+			int rot_x = coord_x + size_x/2 - CENTER_X;
+			int rot_y = coord_y - CENTER_Y;
+			int rot_x_2 = rot_x + size_x*(7-2*x);
+			for (int player = 0; player < 3; player++)
+			{
 				board[player][x][y].set(rot_x * cos(2*3.14*(player)/3) - rot_y*sin(2*3.14*(player)/3)+ CENTER_X,
 						rot_x * sin(2*3.14*(player)/3) + rot_y*cos(2*3.14*(player)/3)+ CENTER_Y);
 				std::cout <<"ro_x1:" << rot_x << std::endl;
-				rot_x += size_x*(7-2*x);
 				std::cout <<"ro_x2:" << rot_x << std::endl;
-				board[player][7-x][y].set(rot_x * cos(2*3.14*(player)/3) - rot_y*sin(2*3.14*(player)/3)+ CENTER_X,
-						rot_x * sin(2*3.14*(player)/3) + rot_y*cos(2*3.14*(player)/3)+ CENTER_Y);
+				board[player][7-x][y].set(rot_x_2 * cos(2*3.14*(player)/3) - rot_y*sin(2*3.14*(player)/3)+ CENTER_X,
+						rot_x_2 * sin(2*3.14*(player)/3) + rot_y*cos(2*3.14*(player)/3)+ CENTER_Y);
 
 			}
 		}
+	}
 	for (int i = 0; i< 48; i+=16)
 	{
 		figures[i] = new Tower(i/16 + 1 );
