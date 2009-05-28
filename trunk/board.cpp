@@ -231,20 +231,17 @@ Board::Board()
 	float coord_x, coord_y_l, coord_y_l_last;
 	int heigth = RADIUS * 1.73 /2; //nasa vyska
 	int base = CENTER_Y + heigth;
-	coord_y_l = 1.73*RADIUS / 3;//vyska toho najposlednejsie (najviac vlavo)
+	coord_y_l = 1.83*RADIUS / 3;//vyska toho najposlednejsie (najviac vlavo)
 	board_img = SDL_LoadBMP("./images/chessboard.bmp");
 	choosed_x = -1; //este sme nic nevybrali
 	choosed_y = -1;
 	choosed_p = -1;
 	for (int player = 0; player < 3; player++)
-		for (int x =0; x<8; x++)
+		for (int x =0; x<4; x++)
 		{
 			coord_x = CENTER_X + (x-4)*size_x;
 			coord_y_l_last = coord_y_l;
-			if (x<4)
-				coord_y_l = coord_y_l_last+ (RADIUS*1.73)/24;
-			else
-				coord_y_l = coord_y_l_last- (RADIUS*1.73)/24;
+			coord_y_l = coord_y_l_last + (RADIUS*1.73)/24;
 			for (int y = 0; y < 4; y++)
 			{
 				int pom2 = coord_y_l/4; 
@@ -259,7 +256,13 @@ Board::Board()
 				int rot_x = coord_x + size_x/2 - CENTER_X;
 				int rot_y = coord_y - CENTER_Y;
 				board[player][x][y].set(rot_x * cos(2*3.14*(player)/3) - rot_y*sin(2*3.14*(player)/3)+ CENTER_X,
-						        rot_x * sin(2*3.14*(player)/3) + rot_y*cos(2*3.14*(player)/3)+ CENTER_Y);
+						rot_x * sin(2*3.14*(player)/3) + rot_y*cos(2*3.14*(player)/3)+ CENTER_Y);
+				std::cout <<"ro_x1:" << rot_x << std::endl;
+				rot_x += size_x*(7-2*x);
+				std::cout <<"ro_x2:" << rot_x << std::endl;
+				board[player][7-x][y].set(rot_x * cos(2*3.14*(player)/3) - rot_y*sin(2*3.14*(player)/3)+ CENTER_X,
+						rot_x * sin(2*3.14*(player)/3) + rot_y*cos(2*3.14*(player)/3)+ CENTER_Y);
+
 			}
 		}
 	for (int i = 0; i< 48; i+=16)
