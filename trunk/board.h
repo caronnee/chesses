@@ -73,6 +73,7 @@ public:
 	bool active; //ktora figurka to vlastne je
 	int owner; //vlastnik figurky vzhadom na hraca pri pocitaci (1 aktualny hrac, 2 hrac druhy v poradi atd, -1 = figurka je vyradena)
 	std::vector<Triple> moves();
+	void move(Gameboard *g,Triple NewPosition); // checkne, ci sa tam da ist, spravi check
 	virtual void check(Gameboard * g) = 0; //Kam vsade sa moze hybat
 	virtual std::vector<Triple> threats(); //co vsetko ohrozuje
 	void choosed(); // ak vybrana, zmeni sa jej vyzor..trosku
