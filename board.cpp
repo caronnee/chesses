@@ -94,6 +94,7 @@ Figure * Place::occupied()
 bool Figure::move(Gameboard *g,Triple NewPosition) // checkne, ci sa tam da ist, spravi check
 {
 	//vymaz vsekty occupy, TODO
+	//vsetkym, co sa da dane a cielove policko byt pozreli, sprav na ne check
 	bool found = false;
 	for (unsigned int i =0; i< legal_positions.size(); i++)
 		if ( NewPosition == legal_positions[i])
@@ -300,7 +301,8 @@ void Pawn::check(Gameboard *g)
 	if (!moved_)
 	{
 		n.y +=2;
-		legal_positions.push_back(n);
+		if((*g)[n].occupied()== NULL)
+			legal_positions.push_back(n);
 	}
 	if (pos.z == owner)
 		n.y = pos.y+1;
@@ -312,12 +314,17 @@ void Pawn::check(Gameboard *g)
 	{
 		n.y = 3;
 		if (n.x<4)
+		{
 			n.z = (n.z + 1)%PLAYERS;
+		}
 		else
+		{
 			n.z = (n.z + 2)%PLAYERS;
+		}
+		n.x= 7 - n.x;
 
 	}
-	legal_positions.push_back(n);
+	if((*g)[n].occupied() == NULL) legal_positions.push_back(n);
 	Triple threat=n; //to posledne, nie je to specialne, iba normalny pohyb, tke ok
 	if ((n.x +1)< BOARD_X_MAX)
 	{
