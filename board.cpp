@@ -91,6 +91,24 @@ Figure * Place::occupied()
 {
 	return occupied_by;
 }
+void Figure::move(Gameboard *g,Triple NewPosition) // checkne, ci sa tam da ist, spravi check
+{
+	//vymaz vsekty occupy, TODO
+	bool found = false;
+	for (unsigned int i =0; i< legal_positions.size(); i++)
+		if ( NewPosition == legal_positions[i])
+		{
+			found = true;
+			break;
+		}
+	if (!found) return;
+	(*g)[legal_positions[0]].occupy(NULL);
+	(*g)[NewPosition].occupy(this);
+	legal_positions.clear();
+	legal_positions.push_back(NewPosition);
+	check(g);
+}
+
 //x.y su aktualne policka v dvojrozmernom poli
 Place::Place()
 {
@@ -223,7 +241,19 @@ Tower::Tower( Triple t)
 
 void Tower::check(Gameboard *g)
 {
-}//TODO tu sa naplna, co kral moze ohrozit a kam sa pohnut
+	//zvysujeme x az kym figura,0 alebo 3
+	Triple pos =  legal_positions[0];
+	Triple n = pos;
+	n.x++;
+	while((*g)[n].occupied()==NULL)
+	{
+		if (n.x +1 == BOARD_X_MAX)
+			break;
+		n.x++;
+		legal_positions.push_back(n);
+	}
+//	if((*g))
+}
 Pawn::Pawn( Triple t)
 {
 	owner = t.z;
@@ -247,6 +277,8 @@ void Pawn::check(Gameboard *g)
 	//do gameboardu sa napisu iba threats
 //	std::cout << legal_positions[0].x << " " << legal_positions[0].y <<" "<< legal_positions[0].z <<std::endl;
 	Triple pos = legal_positions[0];
+	//TODO zlikvidovat attackers!
+	threats_.clear();
 	Triple n = pos;
 	if (!moved_)
 	{
@@ -274,14 +306,14 @@ void Pawn::check(Gameboard *g)
 	{
 		threat.x++;
 		threats_.push_back(threat);
-		(*g)[threat].attackers.push_back(this);
+	//	(*g)[threat].attackers.push_back(this);
 	}
 	threat = n;
 	if ((n.x -1)> 0)
 	{
 		threat.x--;
 		threats_.push_back(threat);
-		(*g)[threat].attackers.push_back(this);
+	//	(*g)[threat].attackers.push_back(this);
 	}
 	for (unsigned int i =0; i< threats_.size(); i++)
 	{
@@ -347,12 +379,12 @@ Board::Board()
 		for (int j = 0; j < 8; j++)
 			figures[i+8+j] = new Pawn( Triple(j,1,owner));
 	}//nacitane vsetky spravne so svojimi tokenmi
-	for (int i = 0; i < 3; i++)
-		for(int j = 0;j< 8; j++)
-			for (int k= 0; k< 2; k++)
-			{
-				board.board[i][j][k].occupy(figures[i*16 + k*8 + j] ); //
-			}
+	for(unsigned int i = 0; i< 48; i++)
+	{
+		Triple pos = figures[i]->moves()[0];
+		figures[i]->move(&board,pos);
+	}
+//	board.board[0][2][2].occupy( new Jumper(Triple(0,2,2)));
 	for (int i =0; i< 48;i++) //vypocitaj pre vsetky figurky, ake policka pokryvaju
 	{
 		figures[i]->check(&board); //nastavi aj figuram
