@@ -244,7 +244,52 @@ Pawn::Pawn( Triple t)
 
 void Pawn::check(Gameboard *g)
 {
-}//TODO tu sa naplna, co kral moze ohrozit a kam sa pohnut
+	//do gameboardu sa napisu iba threats
+//	std::cout << legal_positions[0].x << " " << legal_positions[0].y <<" "<< legal_positions[0].z <<std::endl;
+	Triple pos = legal_positions[0];
+	Triple n = pos;
+	if (!moved_)
+	{
+		n.y +=2;
+		legal_positions.push_back(n);
+	}
+	if (pos.z == owner)
+		n.y = pos.y+1;
+	else 
+		n.y = pos.y -1;
+	if (pos.y == 0)//cas na promociu
+		{std::cout << "Promotion! "<<std::endl;return;}
+	if(n.y > 3)
+	{
+		n.y = 3;
+		if (n.x<4)
+			n.z = (n.z + 1)%PLAYERS;
+		else
+			n.z = (n.z + 2)%PLAYERS;
+
+	}
+	legal_positions.push_back(n);
+	Triple threat=n; //to posledne, nie je to specialne, iba normalny pohyb, tke ok
+	if ((n.x +1)< BOARD_X_MAX)
+	{
+		threat.x++;
+		threats_.push_back(threat);
+		(*g)[threat].attackers.push_back(this);
+	}
+	threat = n;
+	if ((n.x -1)> 0)
+	{
+		threat.x--;
+		threats_.push_back(threat);
+		(*g)[threat].attackers.push_back(this);
+	}
+	for (unsigned int i =0; i< threats_.size(); i++)
+	{
+		Figure * f = (*g)[threats_[i]].occupied();
+		if ((f!=NULL) && (owner != f->owner))
+			legal_positions.push_back(threats_[i]);
+	}
+}
 
 std::vector<Triple> Pawn::threats()
 {
@@ -403,23 +448,22 @@ bool Board::pick_up_figure(int x, int y)
 	{
 		if ( choosed  ==  new_choose)
 		{
-			printf("unchoosing");
 			board[choosed].occupied()->unchoosed();
 			choosed = -1;
+			draw_board();
 		}
 		else 
 		{
-			std::cout << "here" <<std::endl;
 			board[new_choose].occupied()->choosed();
 			if(choosed.z !=-1)
 			{
 				board[choosed].occupied()->unchoosed();
+				draw_board();
 			}
 			display_figure(new_choose);
-		//	display_move(player, x,y);
+			display_move(new_choose);
 			choosed = new_choose;
 		}
-		draw_board();
 	}
 	SDL_Flip(screen);
 	return false;
@@ -430,31 +474,8 @@ void Board::display_move(Triple pos)
 	std::vector<Triple> move = f->moves();
 	for (unsigned int i =1; i< move.size(); i++) //na nultej pozicii ma ulozene svoje veci
 	{
+		std::cout << "suggesting!" <<std::endl;
 		suggest_figure(f, move[i]);
 	}
 }
-/*void Board::suggest_move_pawn(int player_part,int x, int y)
-{
-	int ID = board[player_part][x][y].occupied();
-	std::cout <<"part:"<< player_part << ", owner" << figures[ID]->owner << std::endl;
-	if (!figures[ID]->moved()) //moze byt este o jedno policko
-	{
-		suggest_figure(ID,player_part,x,y+2);
-	}
-	if (player_part == figures[ID]->owner) //ak je na svojom vlastnom hristi, checkuj, ci sa moze pohnut o policko
-	{
-		std::cout <<"echm! " << std::endl;
-		y++;
-	}
-	else 
-		y--;
-	if (y >3) //zisti, na ktory cast by to slo, ci po alebo proti hodinam
-	{
-		y = 3;
-		if ( x < 4)
-			player_part = (player_part + 1)%3;
-		else
-			player_part = (player_part + 2)%3;
-	}
-	suggest_figure(ID,player_part,x,y);
-}*/
+
