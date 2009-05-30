@@ -31,8 +31,8 @@ class Place
 	//Jedno policko moze byt jednych hracom pokryte mac 16 figurakmi, tx 1<<4-1 je prvy hrac 1<<8-1&1<<4-1 druhy atd
 	int coord_x,coord_y; //suradnice stredu policka, kde sa to moze napasovat + kde sa bue vyznacovat krizik a pod.
 	Figure * occupied_by; //ci na nom nejaka figurka stoji alebo niei a jej ID
-	std::vector<Figure *> attackers;//pre kazde Place je zoznam toho, co ho ohrozuje, podla ID
 public:
+	std::vector<Figure *> attackers;//pre kazde Place je zoznam toho, co ho ohrozuje, podla ID
 	int get_x();
 	int get_y();
 	void occupy(Figure * ID);
