@@ -91,7 +91,7 @@ Figure * Place::occupied()
 {
 	return occupied_by;
 }
-void Figure::move(Gameboard *g,Triple NewPosition) // checkne, ci sa tam da ist, spravi check
+bool Figure::move(Gameboard *g,Triple NewPosition) // checkne, ci sa tam da ist, spravi check
 {
 	//vymaz vsekty occupy, TODO
 	bool found = false;
@@ -101,12 +101,15 @@ void Figure::move(Gameboard *g,Triple NewPosition) // checkne, ci sa tam da ist,
 			found = true;
 			break;
 		}
-	if (!found) return;
+	if (!found) return false;
+	std::cout <<"dound!"<<std::endl;
 	(*g)[legal_positions[0]].occupy(NULL);
 	(*g)[NewPosition].occupy(this);
 	legal_positions.clear();
 	legal_positions.push_back(NewPosition);
 	check(g);
+	moved_ = true;
+	return true;
 }
 
 //x.y su aktualne policka v dvojrozmernom poli
@@ -252,7 +255,21 @@ void Tower::check(Gameboard *g)
 		n.x++;
 		legal_positions.push_back(n);
 	}
-//	if((*g))
+	Figure * f = (*g)[n].occupied();
+	if ((f!=NULL)&&(f->owner!=owner))
+		legal_positions.push_back(n);
+
+	n = pos;
+	n.x--;
+	while((*g)[n].occupied()==NULL)
+	{
+		if (n.x +1 == BOARD_X_MAX)
+			break;
+		n.x++;
+		legal_positions.push_back(n);
+	}
+	if ((f!=NULL)&&(f->owner!=owner))
+		legal_positions.push_back(n);
 }
 Pawn::Pawn( Triple t)
 {
@@ -467,8 +484,8 @@ bool Board::pick_up_figure(int x, int y)
 						new_choose.z = i;
 						new_choose.x = j;
 						new_choose.y = k;
-						if (board[new_choose].occupied() == NULL) new_choose = choosed;
-						std::cout << "found!" << i <<" "<< j << " "<< k <<std::endl;
+	//					if (board[new_choose].occupied() == NULL) new_choose = choosed;
+	//					std::cout << "found!" << i <<" "<< j << " "<< k <<std::endl;
 					}
 					if (found) break;
 				}
@@ -476,7 +493,51 @@ bool Board::pick_up_figure(int x, int y)
 		}
 		if (found) break;
 	}
-	if ((found)&&(new_choose.z !=-1))
+
+	if (!found) return false;
+	if (choosed.z == -1) //este sme nic nevybrali
+	{
+		Figure * f = board[new_choose].occupied();
+		if ( f == NULL)
+			return false;
+		f->choosed();
+		std::cout << "xxx";
+		display_figure(new_choose);
+		display_move(new_choose);
+		choosed = new_choose;
+	}
+	else if(choosed == new_choose)
+	{
+		board[choosed].occupied()->unchoosed();
+		choosed = -1;
+		draw_board();	
+	}
+	else 
+	{
+		Figure * f = board[choosed].occupied();
+		f->unchoosed();
+		if (!f->move(&board,new_choose)) //ak sa nepodarilo presunut,
+		{
+			draw_board();
+			Figure * f2 = board[new_choose].occupied();
+			if (f2!=NULL) //a sucasne je owner na tahu
+			{
+				f2->choosed();
+				display_figure(new_choose);
+				display_move(new_choose);
+				choosed = new_choose;
+			}
+			else choosed = -1;
+		}
+		else 
+		{
+			choosed = -1;
+			draw_board();
+		}
+	}
+
+
+	/*if ((found)&&(new_choose.z !=-1))
 	{
 		if ( choosed  ==  new_choose)
 		{
@@ -486,17 +547,23 @@ bool Board::pick_up_figure(int x, int y)
 		}
 		else 
 		{
-			board[new_choose].occupied()->choosed();
-			if(choosed.z !=-1)
+			Figure * f = board[choosed].occupied();
+			if(!f->move(&board,new_choose))
 			{
+				board[new_choose].occupied()->choosed();
 				board[choosed].occupied()->unchoosed();
 				draw_board();
+				display_figure(new_choose);
+				display_move(new_choose);
+				choosed = new_choose;
 			}
-			display_figure(new_choose);
-			display_move(new_choose);
-			choosed = new_choose;
+			else
+			{
+				choosed = -1;
+				draw_board();
+			}
 		}
-	}
+	}*/
 	SDL_Flip(screen);
 	return false;
 }
