@@ -181,8 +181,7 @@ Queen::Queen( Triple t)
 }
 
 void Queen::check(Gameboard *g)
-{
-}//TODO tu sa naplna, co kral moze ohrozit a kam sa pohnut
+{}//TODO tu sa naplna, co kral moze ohrozit a kam sa pohnut
 Bishop::Bishop( Triple t)
 {	
 	owner = t.z;
@@ -413,22 +412,30 @@ void Tower::check(Gameboard *g)
 		legal_positions.push_back(n);
 	}
 	n = pos;
+	if (pos.y == 3)//moze aj do dalsej
+	{
+		int pom = (pos.x <4)?2:1;
+		n.z = (n.z+pom)%3;
+		n.x =5-pom;
+		f = (*g)[n].occupied();
+		if ((f == NULL) || (f->owner!=owner))
+			legal_positions.push_back(n);
+	}
+	n = pos;
 	while (true)
 	{
 		if (n.y + 1 == BOARD_Y_MAX)
-		{//y j tri, t.j.
-			std::cout <<"r"<< n.x <<n.y<<n.z<<std::endl;
-			Triple l = n;
-			n.z = (n.z +1)%3 ;//jednym smerom
+		{
+			n.x = 7-n.x;
 			if (n.x < 4 )
-				n.x = 7-n.x;
+			{
+				n.z = (n.z +2)%3 ;//jednym smerom
+			}
+			else
+			{
+				n.z = (n.z +1)%3 ;//jednym smerom
+			}
 			f = (*g)[n].occupied();
-			if ((f==NULL)||(f->owner!=owner))
-				legal_positions.push_back(n);
-			n.z = (n.z +1)%3 ;//jednym smerom
-			f = (*g)[n].occupied();
-			if (n.x >= 4 )
-				n.x = 7-n.x;
 			if ((f==NULL)||(f->owner!=owner))
 				legal_positions.push_back(n);
 			break;
@@ -581,7 +588,7 @@ Board::Board()
 		figures[i]->move(&board,pos);
 	}
 	std::cout << "--"<<std::endl;
-	Figure * f = new Bishop(Triple(2,3,2));
+	Figure * f = new Tower(Triple(2,3,2));
 	Triple pos = f->moves()[0];
 	f->move(&board,pos);
 /*	for (int i =0; i< 48;i++) //vypocitaj pre vsetky figurky, ake policka pokryvaju
@@ -683,7 +690,7 @@ bool Board::pick_up_figure(int x, int y)
 		if ( f == NULL)
 			return false;
 		f->choosed();
-		std::cout << "xxx";
+//		std::cout << "xxx";
 		display_figure(new_choose);
 		display_move(new_choose);
 		choosed = new_choose;
