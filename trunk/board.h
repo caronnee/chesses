@@ -57,6 +57,8 @@ protected:
 	SDL_Surface * display_token;
 	SDL_Surface * name;
 	SDL_Surface * choose;
+	void bishop(Gameboard *g);
+	void tower(Gameboard *g);
 public:
 
 	enum Tokens
