@@ -202,7 +202,125 @@ Bishop::Bishop( Triple t)
 }
 void Bishop::check(Gameboard *g)
 {
-}//TODO tu sa naplna, co kral moze ohrozit a kam sa pohnut
+	Triple pos = legal_positions[0];
+	Triple n = pos;
+	Figure * f = NULL;
+	if (pos.y == 3)
+	{
+		if (pos.x == 3)
+		{
+			n.z = (n.z+2)%3;
+		}
+		if (pos.x == 4)
+		{
+			n.z = (n.z+1)%3;
+		}
+		f = (*g)[n].occupied();
+		if ((f==NULL)||(f->owner!=owner))
+			legal_positions.push_back(n);
+	}
+	n = pos;
+	while(true)
+	{
+		if (n.x+1 == BOARD_X_MAX)
+			break;
+		if (n.y+1 == BOARD_Y_MAX)
+		{
+			if (n.x < 4)
+			{
+				n.z = (n.z +1)%3;
+				n.x = 7-n.x +1;
+				if (n.x >= BOARD_X_MAX)
+					break;
+			}
+			else 
+			{
+				n.z = (n.z +2)%3;
+				n.x = 7-n.x -1;
+				std::cout << n.x <<std::endl;
+				if (n.x < 0)
+					break;
+			}
+			f = (*g)[n].occupied();
+			if((f==NULL)||(f->owner!=owner))
+				legal_positions.push_back(n);
+			break;
+		}
+		n.x++; n.y++;
+		f = (*g)[n].occupied();
+		if((f == NULL)||(f->owner!=owner))
+			legal_positions.push_back(n);
+	}
+	n = pos;
+	while(true)
+	{
+		if (n.x < 0)
+			break;
+		if (n.y+1 == BOARD_Y_MAX)
+		{
+			if (n.x < 4)
+			{
+				n.z = (n.z +1)%3;
+				n.x = 7-n.x -1;
+				if (n.x < 0)
+					break;
+			}
+			else 
+			{
+				n.z = (n.z +2)%3;
+				n.x = 7-n.x +1;
+				if (n.x >= BOARD_X_MAX)
+					break;
+			}
+			f = (*g)[n].occupied();
+			if((f==NULL)||(f->owner!=owner))
+				legal_positions.push_back(n);
+			break;
+		}
+		n.x--; n.y++;
+		f = (*g)[n].occupied();
+		if((f == NULL)||(f->owner!=owner))
+			legal_positions.push_back(n);
+	}
+	n = pos;
+	while(true)
+	{
+		if ((n.x+1 == BOARD_X_MAX)||(n.y-1 < 0))
+			break;
+		n.x++; n.y--;
+		f = (*g)[n].occupied();
+		if(f == NULL)
+		{
+			legal_positions.push_back(n);
+			continue;
+		}
+		if (f->owner!=owner)
+		{
+			legal_positions.push_back(n);
+			break;
+		}
+		else break;
+	}
+	n = pos;
+	while(true)
+	{
+		if ((n.x-1 < 0)||(n.y-1 < 0))
+			break;
+		n.x--; n.y--;
+		f = (*g)[n].occupied();
+		if(f == NULL)
+		{
+			legal_positions.push_back(n);
+			continue;
+		}
+		if (f->owner!=owner)
+		{
+			legal_positions.push_back(n);
+			break;
+		}
+		else break;
+	}
+}
 
 Jumper::Jumper( Triple t)
 {	
@@ -224,7 +342,7 @@ Jumper::Jumper( Triple t)
 
 void Jumper::check(Gameboard *g)
 {
-}//TODO tu sa naplna, co kral moze ohrozit a kam sa pohnut
+}
 Tower::Tower( Triple t)
 {	
 	owner = t.z;
@@ -248,7 +366,7 @@ void Tower::check(Gameboard *g)
 	//zvysujeme x az kym figura,0 alebo 3
 	Triple pos =  legal_positions[0];
 	Triple n = pos;
-	Figure * f ; 
+	Figure * f = NULL; 
 	while (true)
 	{
 		if (n.x +1 == BOARD_X_MAX)
@@ -463,7 +581,7 @@ Board::Board()
 		figures[i]->move(&board,pos);
 	}
 	std::cout << "--"<<std::endl;
-	Figure * f = new Tower(Triple(3,3,2));
+	Figure * f = new Bishop(Triple(2,3,2));
 	Triple pos = f->moves()[0];
 	f->move(&board,pos);
 /*	for (int i =0; i< 48;i++) //vypocitaj pre vsetky figurky, ake policka pokryvaju
