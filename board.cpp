@@ -161,6 +161,71 @@ King::King(Triple t)
 
 void King::check(Gameboard *g)
 {
+	Triple pos =  legal_positions[0];
+	Figure * f = NULL;
+	if (pos.y == 3)
+	{
+		Triple n = pos; //moze na kazdu stranu
+		if (pos.x < 4)
+		{
+			n.x = 7-pos.x;
+			n.z = (n.z+1)%3;
+			for (int i =1; i<=2; i++)
+			{
+				if (n.x<0) continue;
+				f = (*g)[n].occupied();
+				if ((f == NULL) || (f->owner!=owner))
+					legal_positions.push_back(n);
+				n.x++;
+			}
+			n.x = 7-pos.x-1;
+			f = (*g)[n].occupied();
+			if ((f == NULL) || (f->owner!=owner))
+				legal_positions.push_back(n);
+
+		}
+		else
+		{
+			n.x = 7-pos.x;
+			n.z = (pos.z+2)%3;
+			for (int i =1; i<=2; i++)
+			{
+				if (n.x<0) continue;
+				f = (*g)[n].occupied();
+				if ((f == NULL) || (f->owner!=owner))
+					legal_positions.push_back(n);
+				n.x--;
+			}
+			n.x = 7-pos.x+1;
+			f = (*g)[n].occupied();
+			if ((f == NULL) || (f->owner!=owner))
+				legal_positions.push_back(n);
+		}
+		if ((pos.x == 3)||(pos.x==4))
+		{
+			n = pos;
+			n.z++;
+			if (pos.x == 3)
+				n.z++; //TODO opravit
+			n.z%=3;
+			for (n.x =3; n.x<=4; n.x++)
+			{
+				f = (*g)[n].occupied();
+				if ((f == NULL) || (f->owner!=owner))
+					legal_positions.push_back(n);
+			}
+		}
+	}
+	for (int i = -1; i<2; i++)
+		for (int j = -1; j<2; j++)
+		{
+			Triple n(pos.x+i, pos.y +j, pos.z);
+			if ((n.x <0) || (n.y < 0)|| (n.y >= BOARD_Y_MAX)||( n.x >= BOARD_X_MAX))
+				continue;
+			f = (*g)[n].occupied();
+			if((f== NULL) || (f->owner!=owner))
+				legal_positions.push_back(n);
+		}
 }//TODO tu sa naplna, co kral moze ohrozit a kam sa pohnut
 Queen::Queen( Triple t)
 {	
@@ -598,8 +663,7 @@ Board::Board()
 		Triple pos = figures[i]->moves()[0];
 		figures[i]->move(&board,pos);
 	}
-	std::cout << "--"<<std::endl;
-	Figure * f = new Queen(Triple(2,3,2));
+	Figure * f = new King(Triple(2,3,2));
 	Triple pos = f->moves()[0];
 	f->move(&board,pos);
 /*	for (int i =0; i< 48;i++) //vypocitaj pre vsetky figurky, ake policka pokryvaju
