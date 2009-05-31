@@ -319,13 +319,21 @@ void Figure::bishop(Gameboard *g)
 		}
 		n.x++; n.y++;
 		f = (*g)[n].occupied();
-		if((f == NULL)||(f->owner!=owner))
+		if(f == NULL)
+		{
 			legal_positions.push_back(n);
+			continue;
+		}
+		if(f->owner!=owner)
+		{
+			legal_positions.push_back(n);
+		}
+		break;
 	}
 	n = pos;
 	while(true)
 	{
-		if (n.x < 0)
+		if (n.x == 0)
 			break;
 		if (n.y+1 == BOARD_Y_MAX)
 		{
@@ -350,8 +358,16 @@ void Figure::bishop(Gameboard *g)
 		}
 		n.x--; n.y++;
 		f = (*g)[n].occupied();
-		if((f == NULL)||(f->owner!=owner))
+		if(f == NULL)
+		{
 			legal_positions.push_back(n);
+			continue;
+		}
+		if(f->owner!=owner)
+		{
+			legal_positions.push_back(n);
+		}
+		break;
 	}
 	n = pos;
 	while(true)
@@ -368,9 +384,8 @@ void Figure::bishop(Gameboard *g)
 		if (f->owner!=owner)
 		{
 			legal_positions.push_back(n);
-			break;
 		}
-		else break;
+		break;
 	}
 	n = pos;
 	while(true)
@@ -387,9 +402,8 @@ void Figure::bishop(Gameboard *g)
 		if (f->owner!=owner)
 		{
 			legal_positions.push_back(n);
-			break;
 		}
-		else break;
+		break;
 	}
 }
 
@@ -413,6 +427,7 @@ Jumper::Jumper( Triple t)
 
 void Jumper::check(Gameboard *g)
 {
+	Triple t = legal_positions[0];
 }
 Tower::Tower( Triple t)
 {	
@@ -658,7 +673,7 @@ Board::Board()
 		for (int j = 0; j < 8; j++)
 			figures[i+8+j] = new Pawn( Triple(j,1,owner));
 	}//nacitane vsetky spravne so svojimi tokenmi
-	for(unsigned int i = 0; i< 48; i++)
+	for(int i = 47; i>=0; i--)
 	{
 		Triple pos = figures[i]->moves()[0];
 		figures[i]->move(&board,pos);
