@@ -103,7 +103,7 @@ bool Figure::move(Gameboard *g,Triple NewPosition) // checkne, ci sa tam da ist,
 			break;
 		}
 	if (!found) return false;
-	std::cout <<"dound!"<<std::endl;
+//	std::cout <<"dound!"<<std::endl;
 	(*g)[legal_positions[0]].occupy(NULL);
 	(*g)[NewPosition].occupy(this);
 	legal_positions.clear();
@@ -248,29 +248,83 @@ void Tower::check(Gameboard *g)
 	//zvysujeme x az kym figura,0 alebo 3
 	Triple pos =  legal_positions[0];
 	Triple n = pos;
-	n.x++;
-	while((*g)[n].occupied()==NULL)
+	Figure * f ; 
+	while (true)
 	{
 		if (n.x +1 == BOARD_X_MAX)
 			break;
 		n.x++;
+		if ((*g)[n].occupied()!=NULL)
+		{
+			f = (*g)[n].occupied();
+			if ((f!=NULL)&&(f->owner!=owner))
+				legal_positions.push_back(n);
+			break;
+		}
 		legal_positions.push_back(n);
 	}
-	Figure * f = (*g)[n].occupied();
-	if ((f!=NULL)&&(f->owner!=owner))
-		legal_positions.push_back(n);
 
 	n = pos;
-	n.x--;
-	while((*g)[n].occupied()==NULL)
+	while (true)
 	{
-		if (n.x +1 == BOARD_X_MAX)
+		if (n.x -1 < 0)
 			break;
-		n.x++;
+		n.x--;
+		if ((*g)[n].occupied()!=NULL)
+		{
+			f = (*g)[n].occupied();
+			if ((f!=NULL)&&(f->owner!=owner))
+				legal_positions.push_back(n);
+			break;
+		}
 		legal_positions.push_back(n);
 	}
-	if ((f!=NULL)&&(f->owner!=owner))
+	n = pos;
+	while (true)
+	{
+		if (n.y -1 < 0)
+			break;
+		n.y--;
+		if ((*g)[n].occupied()!=NULL)
+		{
+			f = (*g)[n].occupied();
+			if ((f!=NULL)&&(f->owner!=owner))
+				legal_positions.push_back(n);
+			break;
+		}
 		legal_positions.push_back(n);
+	}
+	n = pos;
+	while (true)
+	{
+		if (n.y + 1 == BOARD_Y_MAX)
+		{//y j tri, t.j.
+			std::cout <<"r"<< n.x <<n.y<<n.z<<std::endl;
+			Triple l = n;
+			n.z = (n.z +1)%3 ;//jednym smerom
+			if (n.x < 4 )
+				n.x = 7-n.x;
+			f = (*g)[n].occupied();
+			if ((f==NULL)||(f->owner!=owner))
+				legal_positions.push_back(n);
+			n.z = (n.z +1)%3 ;//jednym smerom
+			f = (*g)[n].occupied();
+			if (n.x >= 4 )
+				n.x = 7-n.x;
+			if ((f==NULL)||(f->owner!=owner))
+				legal_positions.push_back(n);
+			break;
+		}
+		n.y++;
+		if ((*g)[n].occupied()!=NULL)
+		{
+			f = (*g)[n].occupied();
+			if ((f!=NULL)&&(f->owner!=owner))
+				legal_positions.push_back(n);
+			break;
+		}
+		legal_positions.push_back(n);
+	}
 }
 Pawn::Pawn( Triple t)
 {
@@ -408,11 +462,14 @@ Board::Board()
 		Triple pos = figures[i]->moves()[0];
 		figures[i]->move(&board,pos);
 	}
-//	board.board[0][2][2].occupy( new Jumper(Triple(0,2,2)));
-	for (int i =0; i< 48;i++) //vypocitaj pre vsetky figurky, ake policka pokryvaju
+	std::cout << "--"<<std::endl;
+	Figure * f = new Tower(Triple(3,3,2));
+	Triple pos = f->moves()[0];
+	f->move(&board,pos);
+/*	for (int i =0; i< 48;i++) //vypocitaj pre vsetky figurky, ake policka pokryvaju
 	{
 		figures[i]->check(&board); //nastavi aj figuram
-	}
+	}*/
 }
 void Board::suggest_figure(Figure *f,Triple t)
 {
@@ -542,35 +599,6 @@ bool Board::pick_up_figure(int x, int y)
 			draw_board();
 		}
 	}
-
-
-	/*if ((found)&&(new_choose.z !=-1))
-	{
-		if ( choosed  ==  new_choose)
-		{
-			board[choosed].occupied()->unchoosed();
-			choosed = -1;
-			draw_board();
-		}
-		else 
-		{
-			Figure * f = board[choosed].occupied();
-			if(!f->move(&board,new_choose))
-			{
-				board[new_choose].occupied()->choosed();
-				board[choosed].occupied()->unchoosed();
-				draw_board();
-				display_figure(new_choose);
-				display_move(new_choose);
-				choosed = new_choose;
-			}
-			else
-			{
-				choosed = -1;
-				draw_board();
-			}
-		}
-	}*/
 	SDL_Flip(screen);
 	return false;
 }
@@ -580,7 +608,7 @@ void Board::display_move(Triple pos)
 	std::vector<Triple> move = f->moves();
 	for (unsigned int i =1; i< move.size(); i++) //na nultej pozicii ma ulozene svoje veci
 	{
-		std::cout << "suggesting!" <<std::endl;
+//		std::cout << "suggesting!" <<std::endl;
 		suggest_figure(f, move[i]);
 	}
 }
