@@ -181,7 +181,10 @@ Queen::Queen( Triple t)
 }
 
 void Queen::check(Gameboard *g)
-{}//TODO tu sa naplna, co kral moze ohrozit a kam sa pohnut
+{
+	bishop(g);
+	tower (g);
+}//TODO tu sa naplna, co kral moze ohrozit a kam sa pohnut
 Bishop::Bishop( Triple t)
 {	
 	owner = t.z;
@@ -200,6 +203,10 @@ Bishop::Bishop( Triple t)
 	legal_positions.push_back(t);
 }
 void Bishop::check(Gameboard *g)
+{
+	bishop(g);
+}
+void Figure::bishop(Gameboard *g)
 {
 	Triple pos = legal_positions[0];
 	Triple n = pos;
@@ -361,6 +368,10 @@ Tower::Tower( Triple t)
 }
 
 void Tower::check(Gameboard *g)
+{
+	tower(g);
+}
+void Figure::tower(Gameboard * g)
 {
 	//zvysujeme x az kym figura,0 alebo 3
 	Triple pos =  legal_positions[0];
@@ -588,7 +599,7 @@ Board::Board()
 		figures[i]->move(&board,pos);
 	}
 	std::cout << "--"<<std::endl;
-	Figure * f = new Tower(Triple(2,3,2));
+	Figure * f = new Queen(Triple(2,3,2));
 	Triple pos = f->moves()[0];
 	f->move(&board,pos);
 /*	for (int i =0; i< 48;i++) //vypocitaj pre vsetky figurky, ake policka pokryvaju
