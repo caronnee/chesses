@@ -427,7 +427,40 @@ Jumper::Jumper( Triple t)
 
 void Jumper::check(Gameboard *g)
 {
-	Triple t = legal_positions[0];
+	Triple pos = legal_positions[0];
+	Triple n = pos;
+	Figure * f =NULL;
+	std::vector<Triple> v;
+	int iter = 0;
+	int odd = 2;
+	for (int i = -2; i<=2; i++)
+	{
+		if (i==0) continue;
+
+		odd = (odd+1)%2+1; //u jednicky bude zase dvojka, ako bola predtym
+		v.push_back(Triple(n.x+i,n.y+odd, n.z));
+	//	v.push_back(Triple(n.x+i,n.y-odd, n.z));
+//		v.push_back(Triple(n.x+odd,n.y+i, n.z));
+//		v.push_back(Triple(n.x-odd,n.y+i, n.z));
+	}
+	std::cout << "??"<<v.size() << std::endl;
+	for (unsigned int i =0; i< v.size(); i++)
+	{
+		std::cout <<v[i].x<<v[i].y<<v[i].z<<std::endl;
+		if((v[i].x < 0) || (v[i].y<0) || (v[i].x >= BOARD_X_MAX)) //Ymax je naprosto zbytocna podmienka
+			continue;
+		if (v[i].y>3)
+		{
+			v[i].x = 7 - v[i].x;
+			if(v[i].x <4 )
+				v[i].z = (v[i].z +1)%3;
+			else
+				v[i].z = (v[i].z +2)%3;
+		}
+		f = (*g)[v[i]].occupied();
+		if ((f==NULL)||(f->owner!=owner))
+			legal_positions.push_back(v[i]);
+	}
 }
 Tower::Tower( Triple t)
 {	
@@ -462,14 +495,15 @@ void Figure::tower(Gameboard * g)
 		if (n.x +1 == BOARD_X_MAX)
 			break;
 		n.x++;
-		if ((*g)[n].occupied()!=NULL)
+		f = (*g)[n].occupied();
+		if (f ==NULL)
 		{
-			f = (*g)[n].occupied();
-			if ((f!=NULL)&&(f->owner!=owner))
-				legal_positions.push_back(n);
-			break;
-		}
 		legal_positions.push_back(n);
+		continue;
+		}
+		if (f->owner!=owner)
+			legal_positions.push_back(n);
+		break;
 	}
 
 	n = pos;
@@ -478,14 +512,16 @@ void Figure::tower(Gameboard * g)
 		if (n.x -1 < 0)
 			break;
 		n.x--;
-		if ((*g)[n].occupied()!=NULL)
+		f = (*g)[n].occupied();
+		if (f ==NULL)
 		{
-			f = (*g)[n].occupied();
-			if ((f!=NULL)&&(f->owner!=owner))
-				legal_positions.push_back(n);
-			break;
+			legal_positions.push_back(n);
+			continue;
 		}
-		legal_positions.push_back(n);
+		if (f->owner!=owner)
+			legal_positions.push_back(n);
+		break;
+
 	}
 	n = pos;
 	while (true)
@@ -493,14 +529,15 @@ void Figure::tower(Gameboard * g)
 		if (n.y -1 < 0)
 			break;
 		n.y--;
-		if ((*g)[n].occupied()!=NULL)
+		f = (*g)[n].occupied();
+		if (f ==NULL)
 		{
-			f = (*g)[n].occupied();
-			if ((f!=NULL)&&(f->owner!=owner))
-				legal_positions.push_back(n);
-			break;
+			legal_positions.push_back(n);
+			continue;
 		}
-		legal_positions.push_back(n);
+		if (f->owner!=owner)
+			legal_positions.push_back(n);
+		break;
 	}
 	n = pos;
 	if (pos.y == 3)//moze aj do dalsej
@@ -532,14 +569,15 @@ void Figure::tower(Gameboard * g)
 			break;
 		}
 		n.y++;
-		if ((*g)[n].occupied()!=NULL)
+		f = (*g)[n].occupied();
+		if (f ==NULL)
 		{
-			f = (*g)[n].occupied();
-			if ((f!=NULL)&&(f->owner!=owner))
-				legal_positions.push_back(n);
-			break;
-		}
 		legal_positions.push_back(n);
+		continue;
+		}
+		if (f->owner!=owner)
+			legal_positions.push_back(n);
+		break;
 	}
 }
 Pawn::Pawn( Triple t)
@@ -673,12 +711,14 @@ Board::Board()
 		for (int j = 0; j < 8; j++)
 			figures[i+8+j] = new Pawn( Triple(j,1,owner));
 	}//nacitane vsetky spravne so svojimi tokenmi
+	for (int i =0; i< 48; i++)
+		board[figures[i]->moves()[0]].occupy(figures[i]);
 	for(int i = 47; i>=0; i--)
 	{
 		Triple pos = figures[i]->moves()[0];
 		figures[i]->move(&board,pos);
 	}
-	Figure * f = new King(Triple(2,3,2));
+	Figure * f = new Jumper(Triple(2,2,2));
 	Triple pos = f->moves()[0];
 	f->move(&board,pos);
 /*	for (int i =0; i< 48;i++) //vypocitaj pre vsetky figurky, ake policka pokryvaju
@@ -737,7 +777,7 @@ void Board::draw_board()
 
 bool Board::pick_up_figure(int x, int y)
 {
-	printf("Suradnice %d %d\n", x,y);
+//	printf("Suradnice %d %d\n", x,y);
 	Triple new_choose;
 	int x_coord, y_coord, x_old, y_old;
 	x_coord = x;
