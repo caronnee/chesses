@@ -4,6 +4,39 @@
 #define NUM_OF_PLACES 48
 #define RADIUS 200
 
+DoubleLinkItem::DoubleLinkItem(int val)
+{ value = val;next = this; prev = this;}
+DoubleLink::DoubleLink()
+{
+	head = NULL;
+}
+void DoubleLink::add(int val)
+{
+	DoubleLinkItem * it = new DoubleLinkItem(val);
+	if (head == NULL)
+	{
+		head = it;
+		return;
+	}
+	DoubleLinkItem *last = head->prev;
+	last->next = it;
+	it->next = head;
+	head->prev = it;
+	it->prev = last;
+}
+
+void DoubleLink::remove(DoubleLinkItem * it)
+{
+	if (head->next == head)
+	{
+		delete head;
+		head = NULL;
+		return;
+	}
+	it->prev->next = it->next;
+	it->prev->next = it->prev;
+	delete it;
+}
 
 Triple::Triple()
 {
@@ -57,10 +90,6 @@ void Figure::unchoosed()
 {
 	display_token = token;
 }
-bool Figure::moved()
-{
-	return moved_;
-}
 void Figure::remove()
 {
 	active = false;
@@ -78,12 +107,13 @@ SDL_Surface * Figure::display_name()
 
 Figure::Figure()
 {
-	moved_ = false;
+	moved = -1;
 	under_attack = false;
-	owner = -1; //este nikto nemam zabookovanu figurku
+	owner = ~0; //este nikto nemam zabookovanu figurku
 	active = true;
 	display_token = NULL;
 	choose = SDL_LoadBMP("./images/selected.bmp");
+	public_owner = -1;
 	//SDL_SetColorKey(choose,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 }
 
@@ -103,22 +133,55 @@ bool Figure::move(Gameboard *g,Triple NewPosition) // checkne, ci sa tam da ist,
 			break;
 		}
 	if (!found) return false;
-//	std::cout <<"dound!"<<std::endl;
-	(*g)[legal_positions[0]].occupy(NULL);
+	Triple old_position = legal_positions[0];
+//	std::cout << old_position.x <<","<<old_position.y <<"," << old_position.z <<std::endl;
+	(*g)[old_position].occupy(NULL);
+	{
+		Figure *f =(*g)[NewPosition].occupied();
+		if (f!=NULL) 
+		{
+			f->clear(g);
+			f->active = false;
+		}
+	}
+	legal_positions[0] = NewPosition;
 	(*g)[NewPosition].occupy(this);
-	legal_positions.clear();
-	legal_positions.push_back(NewPosition);
-	check(g);
-	moved_ = true;
+	moved++; //neviem, kto utoci, ale policko je pokryte, ak je suma >0
 	return true;
 }
+void Figure::clear(Gameboard * g)
+{
+	Triple old_position = legal_positions[0];
+	std::vector<Triple> t = threats();
+	for (unsigned int i =0; i< t.size(); i++)
+	{
+		(*g)[t[i]].sum--;
+		(*g)[t[i]].players_attack[owner]--;
+	} //moze tam byt aj viac krat, vzdy sa to odcita
+}
+void Figure::recheck(Gameboard * g)
+{
+	clear(g);
+	Triple pos = legal_positions[0];
+	legal_positions.clear();
+	legal_positions.push_back(pos);
+	check(g);
+	std::vector<Triple> t = threats();
+	for (unsigned int i =0; i< t.size(); i++)
+	{
+		(*g)[t[i]].sum++;
+		(*g)[t[i]].players_attack[owner]++;
+	}
+}
 
-//x.y su aktualne policka v dvojrozmernom poli
 Place::Place()
 {
 	occupied_by = NULL;
 	coord_x = 0;
 	coord_y = 0; 
+	for (unsigned int i =0; i< PLAYERS; i++)
+		players_attack[i] = 0;
+	sum = 0;
 }
 void Place::set(int x, int y)
 {
@@ -144,6 +207,7 @@ int Place::get_y()
 King::King(Triple t)
 {
 	owner = t.z;
+	public_owner = 1 << owner;
 	std::stringstream out;
 	out <<owner;
 	std::string s = "./images/token";
@@ -170,35 +234,34 @@ void King::check(Gameboard *g)
 		{
 			n.x = 7-pos.x;
 			n.z = (n.z+1)%3;
-			for (int i =1; i<=2; i++)
+			for (unsigned int i =1; i<=2; i++)
 			{
 				if (n.x<0) continue;
 				f = (*g)[n].occupied();
-				if ((f == NULL) || (f->owner!=owner))
+				if ((f == NULL) || (f->public_owner & ~public_owner))
 					legal_positions.push_back(n);
 				n.x++;
 			}
 			n.x = 7-pos.x-1;
 			f = (*g)[n].occupied();
-			if ((f == NULL) || (f->owner!=owner))
+			if ((f == NULL) || (f->public_owner & ~public_owner))
 				legal_positions.push_back(n);
-
 		}
 		else
 		{
 			n.x = 7-pos.x;
 			n.z = (pos.z+2)%3;
-			for (int i =1; i<=2; i++)
+			for (unsigned int i =1; i<=2; i++)
 			{
 				if (n.x<0) continue;
 				f = (*g)[n].occupied();
-				if ((f == NULL) || (f->owner!=owner))
+				if ((f == NULL) || (f->public_owner & ~public_owner))
 					legal_positions.push_back(n);
 				n.x--;
 			}
 			n.x = 7-pos.x+1;
 			f = (*g)[n].occupied();
-			if ((f == NULL) || (f->owner!=owner))
+			if ((f == NULL) || (f->public_owner & ~public_owner))
 				legal_positions.push_back(n);
 		}
 		if ((pos.x == 3)||(pos.x==4))
@@ -206,12 +269,12 @@ void King::check(Gameboard *g)
 			n = pos;
 			n.z++;
 			if (pos.x == 3)
-				n.z++; //TODO opravit
+				n.z++;
 			n.z%=3;
 			for (n.x =3; n.x<=4; n.x++)
 			{
 				f = (*g)[n].occupied();
-				if ((f == NULL) || (f->owner!=owner))
+				if ((f == NULL) || (f->public_owner & ~public_owner))
 					legal_positions.push_back(n);
 			}
 		}
@@ -223,13 +286,30 @@ void King::check(Gameboard *g)
 			if ((n.x <0) || (n.y < 0)|| (n.y >= BOARD_Y_MAX)||( n.x >= BOARD_X_MAX))
 				continue;
 			f = (*g)[n].occupied();
-			if((f== NULL) || (f->owner!=owner))
+			if((f== NULL) || (f->public_owner & ~public_owner))
 				legal_positions.push_back(n);
 		}
-}//TODO tu sa naplna, co kral moze ohrozit a kam sa pohnut
+	unsigned int iter = 1;
+//	std::cout << "\t"<<owner<<"\t" <<std::endl;
+	while (iter < legal_positions.size())
+	{
+//		std::cerr <<(*g)[legal_positions[iter]].sum<<":"<<(*g)[legal_positions[iter]].players_attack[owner]<<"("
+//			<<legal_positions[iter].x<<","<< legal_positions[iter].y<<","<< legal_positions[iter].z<<std::endl;
+/*		std::cerr <<" === "<<(*g)[legal_positions[iter]].players_attack[0];
+		std::cerr <<" === "<<(*g)[legal_positions[iter]].players_attack[1];
+		std::cerr <<" === "<<(*g)[legal_positions[iter]].players_attack[2]<<std::endl;*/
+		if ((*g)[legal_positions[iter]].sum > (*g)[legal_positions[iter]].players_attack[owner])
+		{
+			legal_positions.erase(legal_positions.begin()+iter);
+		}
+		else iter++;
+	}
+//	std::cout << "!!!!!!" <<std::endl<<std::endl;
+}
 Queen::Queen( Triple t)
 {	
 	owner = t.z;
+	public_owner = 1<< owner;
 	std::stringstream out;
 	out <<owner;
 	std::string s = "./images/token";
@@ -253,6 +333,7 @@ void Queen::check(Gameboard *g)
 Bishop::Bishop( Triple t)
 {	
 	owner = t.z;
+	public_owner = 1<< owner;
 	std::stringstream out;
 	out <<owner;
 	std::string s = "./images/token";
@@ -287,7 +368,7 @@ void Figure::bishop(Gameboard *g)
 			n.z = (n.z+1)%3;
 		}
 		f = (*g)[n].occupied();
-		if ((f==NULL)||(f->owner!=owner))
+		if ((f==NULL)||(f->public_owner & ~public_owner))
 			legal_positions.push_back(n);
 	}
 	n = pos;
@@ -307,13 +388,12 @@ void Figure::bishop(Gameboard *g)
 			else 
 			{
 				n.z = (n.z +2)%3;
-				n.x = 7-n.x -1;
-				std::cout << n.x <<std::endl;
+				n.x = 7-n.x +1;
 				if (n.x < 0)
 					break;
 			}
 			f = (*g)[n].occupied();
-			if((f==NULL)||(f->owner!=owner))
+			if((f==NULL)||(f->public_owner & ~public_owner))
 				legal_positions.push_back(n);
 			break;
 		}
@@ -324,7 +404,7 @@ void Figure::bishop(Gameboard *g)
 			legal_positions.push_back(n);
 			continue;
 		}
-		if(f->owner!=owner)
+		if(f->public_owner & ~public_owner)
 		{
 			legal_positions.push_back(n);
 		}
@@ -352,7 +432,7 @@ void Figure::bishop(Gameboard *g)
 					break;
 			}
 			f = (*g)[n].occupied();
-			if((f==NULL)||(f->owner!=owner))
+			if((f==NULL)||(f->public_owner & ~public_owner))
 				legal_positions.push_back(n);
 			break;
 		}
@@ -363,7 +443,7 @@ void Figure::bishop(Gameboard *g)
 			legal_positions.push_back(n);
 			continue;
 		}
-		if(f->owner!=owner)
+		if(f->public_owner& ~public_owner)
 		{
 			legal_positions.push_back(n);
 		}
@@ -372,7 +452,7 @@ void Figure::bishop(Gameboard *g)
 	n = pos;
 	while(true)
 	{
-		if ((n.x+1 == BOARD_X_MAX)||(n.y-1 < 0))
+		if ((n.x+1 == BOARD_X_MAX)||((n.y-1)< 0))
 			break;
 		n.x++; n.y--;
 		f = (*g)[n].occupied();
@@ -381,7 +461,7 @@ void Figure::bishop(Gameboard *g)
 			legal_positions.push_back(n);
 			continue;
 		}
-		if (f->owner!=owner)
+		if (f->public_owner & ~public_owner)
 		{
 			legal_positions.push_back(n);
 		}
@@ -390,7 +470,7 @@ void Figure::bishop(Gameboard *g)
 	n = pos;
 	while(true)
 	{
-		if ((n.x-1 < 0)||(n.y-1 < 0))
+		if ((n.x-1< 0)||(n.y-1< 0))
 			break;
 		n.x--; n.y--;
 		f = (*g)[n].occupied();
@@ -399,7 +479,7 @@ void Figure::bishop(Gameboard *g)
 			legal_positions.push_back(n);
 			continue;
 		}
-		if (f->owner!=owner)
+		if (f->public_owner & ~public_owner)
 		{
 			legal_positions.push_back(n);
 		}
@@ -410,6 +490,7 @@ void Figure::bishop(Gameboard *g)
 Jumper::Jumper( Triple t)
 {	
 	owner = t.z;
+	public_owner = 1<< owner;
 	std::stringstream out;
 	out <<owner;
 	std::string s = "./images/token";
@@ -428,7 +509,6 @@ Jumper::Jumper( Triple t)
 void Jumper::check(Gameboard *g)
 {
 	Triple n = legal_positions[0];
-	std::cout <<n.x<<n.y<<n.z<<std::endl;
 	Figure * f =NULL;
 	std::vector<Triple> v;
 	int odd = 2;
@@ -442,10 +522,8 @@ void Jumper::check(Gameboard *g)
 		v.push_back(Triple(n.x+odd,n.y+i, n.z));
 		v.push_back(Triple(n.x-odd,n.y+i, n.z));
 	}
-	std::cout << "??"<<v.size() << std::endl;
 	for (unsigned int i =0; i< v.size(); i++)
 	{
-		std::cout <<v[i].x<<v[i].y<<v[i].z<<std::endl;
 		if((v[i].x < 0) || (v[i].y<0) || (v[i].x >= BOARD_X_MAX)) 
 			continue;
 		if (v[i].y>3)
@@ -480,14 +558,14 @@ void Jumper::check(Gameboard *g)
 			}
 		}
 		f = (*g)[v[i]].occupied();
-		if ((f==NULL)||(f->owner!=owner))
+		if ((f==NULL)||(f->public_owner & ~public_owner))
 			legal_positions.push_back(v[i]);
 	}
-	std::cout << "-----"<<std::endl;
 }
 Tower::Tower( Triple t)
 {	
 	owner = t.z;
+	public_owner = 1<< owner;
 	std::stringstream out;
 	out << owner;
 	std::string s = "./images/token";
@@ -521,10 +599,10 @@ void Figure::tower(Gameboard * g)
 		f = (*g)[n].occupied();
 		if (f ==NULL)
 		{
-		legal_positions.push_back(n);
-		continue;
+			legal_positions.push_back(n);
+			continue;
 		}
-		if (f->owner!=owner)
+		if (f->public_owner & ~public_owner)
 			legal_positions.push_back(n);
 		break;
 	}
@@ -532,7 +610,7 @@ void Figure::tower(Gameboard * g)
 	n = pos;
 	while (true)
 	{
-		if (n.x -1 < 0)
+		if (n.x -1< 0)
 			break;
 		n.x--;
 		f = (*g)[n].occupied();
@@ -541,7 +619,7 @@ void Figure::tower(Gameboard * g)
 			legal_positions.push_back(n);
 			continue;
 		}
-		if (f->owner!=owner)
+		if (f->public_owner & ~public_owner)
 			legal_positions.push_back(n);
 		break;
 
@@ -549,7 +627,7 @@ void Figure::tower(Gameboard * g)
 	n = pos;
 	while (true)
 	{
-		if (n.y -1 < 0)
+		if (n.y -1< 0)
 			break;
 		n.y--;
 		f = (*g)[n].occupied();
@@ -558,7 +636,7 @@ void Figure::tower(Gameboard * g)
 			legal_positions.push_back(n);
 			continue;
 		}
-		if (f->owner!=owner)
+		if (f->public_owner & ~public_owner)
 			legal_positions.push_back(n);
 		break;
 	}
@@ -569,7 +647,7 @@ void Figure::tower(Gameboard * g)
 		n.z = (n.z+pom)%3;
 		n.x =5-pom;
 		f = (*g)[n].occupied();
-		if ((f == NULL) || (f->owner!=owner))
+		if ((f == NULL) || (f->public_owner & ~public_owner))
 			legal_positions.push_back(n);
 	}
 	n = pos;
@@ -587,7 +665,7 @@ void Figure::tower(Gameboard * g)
 				n.z = (n.z +1)%3 ;//jednym smerom
 			}
 			f = (*g)[n].occupied();
-			if ((f==NULL)||(f->owner!=owner))
+			if ((f==NULL)||(f->public_owner & ~public_owner))
 				legal_positions.push_back(n);
 			break;
 		}
@@ -598,7 +676,7 @@ void Figure::tower(Gameboard * g)
 		legal_positions.push_back(n);
 		continue;
 		}
-		if (f->owner!=owner)
+		if (f->public_owner & ~public_owner)
 			legal_positions.push_back(n);
 		break;
 	}
@@ -606,6 +684,7 @@ void Figure::tower(Gameboard * g)
 Pawn::Pawn( Triple t)
 {
 	owner = t.z;
+	public_owner = 1<< owner;
 	std::stringstream out;
 	out <<owner;
 	std::string s = "./images/token";
@@ -624,21 +703,15 @@ Pawn::Pawn( Triple t)
 void Pawn::check(Gameboard *g)
 {
 	//do gameboardu sa napisu iba threats
-//	std::cout << legal_positions[0].x << " " << legal_positions[0].y <<" "<< legal_positions[0].z <<std::endl;
 	Triple pos = legal_positions[0];
-	//TODO zlikvidovat attackers!
 	threats_.clear();
 	Triple n = pos;
-	if (!moved_)
-	{
-		n.y +=2;
-		if((*g)[n].occupied()== NULL)
-			legal_positions.push_back(n);
-	}
+
+	n = pos;
 	if (pos.z == owner)
-		n.y = pos.y+1;
+		n.y = pos.y + 1;
 	else 
-		n.y = pos.y -1;
+		n.y = pos.y - 1;
 	if (pos.y == 0)//cas na promociu
 		{std::cout << "Promotion! "<<std::endl;return;}
 	if(n.y > 3)
@@ -655,25 +728,45 @@ void Pawn::check(Gameboard *g)
 		n.x= 7 - n.x;
 
 	}
-	if((*g)[n].occupied() == NULL) legal_positions.push_back(n);
+	if((*g)[n].occupied() == NULL) 
+	{
+		legal_positions.push_back(n);
+		if (moved <= 0)
+		{
+			n.y++;
+			if((*g)[n].occupied()== NULL)
+				legal_positions.push_back(n);
+			n.y--;
+		}
+	}
+
 	Triple threat=n; //to posledne, nie je to specialne, iba normalny pohyb, tke ok
 	if ((n.x +1)< BOARD_X_MAX)
 	{
 		threat.x++;
 		threats_.push_back(threat);
-	//	(*g)[threat].attackers.push_back(this);
+		if (threat.x == 4)
+		{
+		//	threat.x = 7-threat.x;
+			if ((pos.y ==3)&&(pos.z==owner)) threat.z = (threat.z +2)%3;
+			threats_.push_back(threat);
+		}
 	}
 	threat = n;
 	if ((n.x -1)> 0)
 	{
 		threat.x--;
 		threats_.push_back(threat);
-	//	(*g)[threat].attackers.push_back(this);
+		if (threat.x ==3)
+		{
+			if ((pos.y == 3)&&(pos.z == owner)) threat.z = (threat.z +1)%3;
+			threats_.push_back(threat);
+		}
 	}
 	for (unsigned int i =0; i< threats_.size(); i++)
 	{
 		Figure * f = (*g)[threats_[i]].occupied();
-		if ((f!=NULL) && (owner != f->owner))
+		if ((f!=NULL) && (public_owner & ~f->public_owner))
 			legal_positions.push_back(threats_[i]);
 	}
 }
@@ -681,9 +774,11 @@ void Pawn::check(Gameboard *g)
 std::vector<Triple> Pawn::threats()
 {
 	return threats_;
-}//TODO tu sa naplna, co kral moze ohrozit a kam sa pohnut
+}
+
 Board::Board()
 {
+	win = -1;
 	float size_x = RADIUS/8;//velkost nasho kroku
 	float coord_x, coord_y_l, coord_y_l_last;
 	int heigth = RADIUS * 1.73 /2; //nasa vyska
@@ -691,6 +786,7 @@ Board::Board()
 	coord_y_l = 1.83*RADIUS / 3;//vyska toho najposlednejsie (najviac vlavo)
 	board_img = SDL_LoadBMP("./images/chessboard.bmp");
 	choosed = -1;
+	player_on_turn = 0;
 	for (int x = 0; x<4; x++)
 	{
 		coord_x = CENTER_X + (x-4)*size_x;
@@ -723,7 +819,7 @@ Board::Board()
 	for (int i = 0; i< 48; i+=16)
 	{
 		int owner = i/16;
-	/*	figures[i] = new Tower(Triple(0,0,owner) );
+		figures[i] = new Tower(Triple(0,0,owner) );
 		figures[i+1] = new Jumper(Triple(1,0,owner) );
 		figures[i+2] = new Bishop(Triple(2,0,owner) );
 		figures[i+3] = new King(Triple(3,0,owner) );
@@ -732,24 +828,71 @@ Board::Board()
 		figures[i+6] = new Jumper(Triple(6,0,owner) );
 		figures[i+7] = new Tower(Triple(7,0,owner) );
 		for (int j = 0; j < 8; j++)
+		{
 			figures[i+8+j] = new Pawn( Triple(j,1,owner));
-			*/
-	}//nacitane vsetky spravne so svojimi tokenmi
-	/*for (int i =0; i< 48; i++)
-		board[figures[i]->moves()[0]].occupy(figures[i]);
+		}
 		
-	for(int i = 47; i>=0; i--)
+	}//nacitane vsetky spravne so svojimi tokenmi
+	for (int i =0; i< 48; i++)
+	{
+		board[figures[i]->moves()[0]].occupy(figures[i]);
+	}
+		
+/*	for(int i = 47; i>=0; i--)
 	{
 		Triple pos = figures[i]->moves()[0];
 		figures[i]->move(&board,pos);
+//		std::cout << i << ":moved" << figures[i]->moved <<std::endl;
 	}*/
-	Figure * f = new Jumper(Triple(1,0,0));
+/*	Figure * f = new Pawn(Triple(3,1,0));
 	Triple pos = f->moves()[0];
 	f->move(&board,pos);
-/*	for (int i =0; i< 48;i++) //vypocitaj pre vsetky figurky, ake policka pokryvaju
+	*/
+	for (int i =0; i< 48;i++) //vypocitaj pre vsetky figurky, ake policka pokryvaju
 	{
 		figures[i]->check(&board); //nastavi aj figuram
-	}*/
+	}
+}
+void Board:: reset()
+{
+	std::cerr <<"boma";
+	for (int i =0; i< 48; i++)
+	{
+		delete figures[i];
+	}
+	for (int i =0; i< PLAYERS; i++)
+	{
+		for (int j =0; j< 4; j++)
+			for (int x = 0; x < 8; x++)
+				board.board[i][x][j].reset();
+	}
+	for (int i = 0; i< 48; i+=16)
+	{
+		int owner = i/16;
+		figures[i] = new Tower(Triple(0,0,owner) );
+		figures[i+1] = new Jumper(Triple(1,0,owner) );
+		figures[i+2] = new Bishop(Triple(2,0,owner) );
+		figures[i+3] = new King(Triple(3,0,owner) );
+		figures[i+4] = new Queen(Triple(4,0,owner) );
+		figures[i+5] = new Bishop(Triple(5,0,owner) );
+		figures[i+6] = new Jumper(Triple(6,0,owner) );
+		figures[i+7] = new Tower(Triple(7,0,owner) );
+		for (int j = 0; j < 8; j++)
+		{
+			figures[i+8+j] = new Pawn( Triple(j,1,owner));
+		}
+
+	}//nacitane vsetky spravne so svojimi tokenmi
+	for (int i =0; i< 48; i++)
+	{
+		board[figures[i]->moves()[0]].occupy(figures[i]);
+	}
+	for (int i =0; i< 48;i++) //vypocitaj pre vsetky figurky, ake policka pokryvaju
+	{
+		figures[i]->check(&board); //nastavi aj figuram
+	}
+	player_on_turn = 0;
+	draw_board();
 }
 void Board::suggest_figure(Figure *f,Triple t)
 {
@@ -793,7 +936,6 @@ void Board::draw_board()
 			{     
 				if ( board.board[p][xx][y].occupied()!=NULL )
 				{
-					//std::cout << ID <<std::endl;
 					display_figure(Triple(xx,y,p));
 				}
 			}
@@ -828,8 +970,6 @@ bool Board::pick_up_figure(int x, int y)
 						new_choose.z = i;
 						new_choose.x = j;
 						new_choose.y = k;
-	//					if (board[new_choose].occupied() == NULL) new_choose = choosed;
-	//					std::cout << "found!" << i <<" "<< j << " "<< k <<std::endl;
 					}
 					if (found) break;
 				}
@@ -839,13 +979,17 @@ bool Board::pick_up_figure(int x, int y)
 	}
 
 	if (!found) return false;
+	return pick_up_figure(new_choose);
+}
+
+bool Board::pick_up_figure(Triple new_choose)
+{	
 	if (choosed.z == -1) //este sme nic nevybrali
 	{
 		Figure * f = board[new_choose].occupied();
-		if ( f == NULL)
+		if (( f == NULL)||(f->public_owner & ~(1<< player_on_turn))||(!f->active))
 			return false;
 		f->choosed();
-//		std::cout << "xxx";
 		display_figure(new_choose);
 		display_move(new_choose);
 		choosed = new_choose;
@@ -866,6 +1010,8 @@ bool Board::pick_up_figure(int x, int y)
 			Figure * f2 = board[new_choose].occupied();
 			if (f2!=NULL) //a sucasne je owner na tahu
 			{
+				if (!f2->active) return false;
+				if (f2->public_owner & ~f->public_owner) return false;
 				f2->choosed();
 				display_figure(new_choose);
 				display_move(new_choose);
@@ -875,7 +1021,91 @@ bool Board::pick_up_figure(int x, int y)
 		}
 		else 
 		{
+			if (f->moves().size() == 0)
+			{
+				//promote!
+				bool promoted = false;
+				int ID = 0;
+				for (ID = 0; ID< 48; ID++)
+					if (figures[ID]==f)
+						break;
+				while (!promoted)
+				{
+				SDL_Event e;
+				SDL_WaitEvent(&e);
+				switch (e.type)
+				{
+					case SDL_KEYDOWN:
+						switch(e.key.keysym.sym)
+						{
+							case SDLK_ESCAPE:
+								return false;
+								break;
+
+							case SDLK_q:
+								promoted = true;
+								f->clear(&board);
+								delete f;
+								figures[ID] = new Queen(new_choose);
+								break;
+							case SDLK_t:
+								promoted = true;
+								f->clear(&board);
+								delete f;
+								figures[ID] = new Tower(new_choose);
+								break;
+							case SDLK_j:
+								promoted = true;
+								f->clear(&board);
+								delete f;
+								figures[ID] = new Jumper(new_choose);
+								break;			
+							case SDLK_b:
+								promoted = true;
+								f->clear(&board);
+								delete f;
+								figures[ID] = new Bishop(new_choose);
+								break;
+							default:
+								break;
+						}
+						break;
+					case SDL_QUIT:
+						return false;
+						break;
+
+				}
+				}
+			}
 			choosed = -1;
+			for (int i =0; i< 48; i++)
+			{
+				figures[i]->recheck(&board);
+			}
+			for (int i = 0; i<PLAYERS; i++)
+			{
+				figures[16*i + 3]->recheck(&board);
+			}
+			Triple ooo(4,1,0);
+			std::cerr <<" \t "<<board[ooo].sum<<std::endl;
+			std::cerr <<" === "<<board[ooo].players_attack[0];
+			std::cerr <<" === "<<board[ooo].players_attack[1];
+			std::cerr <<" === "<<board[ooo].players_attack[2]<<std::endl;
+			
+			player_on_turn = (player_on_turn +1) %3;
+			while (!figures[16*player_on_turn +3]->active)
+				player_on_turn = (player_on_turn +1) %3;
+			Triple attacked = figures[16*player_on_turn +3]->moves()[0];
+			if (board[attacked].sum - board[attacked].players_attack[player_on_turn] > 0)
+				if (!possible_avoid(attacked))
+				{
+					for (int i = 0; i<16; i++)
+					{
+						figures[16*player_on_turn + i]->public_owner = ~0;
+						//TODO nejaky prihladny vzor, aby sa to odlisilo
+						//popripade zmenit 
+					}
+				}
 			draw_board();
 		}
 	}
@@ -888,8 +1118,83 @@ void Board::display_move(Triple pos)
 	std::vector<Triple> move = f->moves();
 	for (unsigned int i =1; i< move.size(); i++) //na nultej pozicii ma ulozene svoje veci
 	{
-//		std::cout << "suggesting!" <<std::endl;
 		suggest_figure(f, move[i]);
 	}
 }
 
+bool Board::possible_avoid(Triple t)
+{
+	std::cout << "tu nenam zatial co robit"<<std::endl;
+	//ak sa ma kde pohnut kral
+	Figure *f = board[t].occupied();
+	if (f->moves().size()>0)
+		return true;
+	//ak policko ohrozuje iba jedna figurka a niekto moze blokovat
+	int o;
+	for (o =0; o< PLAYERS; o++)
+		if ( (1<o) & f->public_owner)
+			break;
+	int at = board[t].sum - board[t].players_attack[o];
+	if (at == 2)
+		return false;
+	//ak to niek to moze zblokovat
+	for(unsigned int i = 0; i< 16; i++)
+	{
+		if (!figures[player_on_turn*16 + i]->active)
+			continue;
+		std::vector<Triple> m = figures[player_on_turn*16 + i]->moves();
+		Triple old_position = m[0];
+		for (unsigned int a = 1; a < m.size(); a++)
+		{
+			f->move(&board,m[a]);
+			for (unsigned int j =0; j< 48; j++)
+			{
+				figures[j]->recheck(&board);
+			}
+			if(board[t].sum == board[t].players_attack[o])
+			{
+				f->moved--;
+				f->move(&board,old_position);
+				for (unsigned int j =0; j< 48; j++)
+				{
+					figures[j]->recheck(&board);
+				}
+				return true;
+			}
+			f->moved--;
+		}
+		f->move(&board,old_position);
+		for (unsigned int j =0; j< 48; j++)
+		{
+			figures[j]->recheck(&board);
+		}
+	}
+	return false;
+}
+Board::~Board()
+{
+	for(int i =0; i< 48; i++)
+		delete figures[i];
+	SDL_FreeSurface(board_img);
+}
+Figure::~Figure()
+{
+	SDL_FreeSurface(name);
+	SDL_FreeSurface(token);
+//	SDL_FreeSurface(display_token);
+	SDL_FreeSurface(choose);
+}
+Pawn::~Pawn(){}
+King::~King(){}
+Queen::~Queen(){}
+Bishop::~Bishop(){}
+Jumper::~Jumper(){}
+Tower::~Tower(){}
+
+void Place::reset()
+{
+	occupied_by = NULL;
+	sum = NULL;
+	for (int i =0; i < PLAYERS; i++)
+		players_attack[i] = 0;
+}
