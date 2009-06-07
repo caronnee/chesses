@@ -459,7 +459,7 @@ bool ProcessEventJoin()
 	if (FD_ISSET(fd, &rfdset))
 	{
 		int sz = read(fd,buf,sizeof(buf));
-		owner = ntohl(buf[0]);//TODO check!
+		owner = ntohl(buf[0]);
 		std::cerr << "mam ownera c."<<owner <<  std::endl;
 	}
 	int res;
