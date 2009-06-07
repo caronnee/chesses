@@ -278,9 +278,10 @@ int menu()
 				break;
 
 			case SDL_QUIT:
-				return false;
+				return Exit;
 				break;
 			default:
+				return -1;
 				break;
 		}
 	}
@@ -401,7 +402,7 @@ bool client()
 		perror("connect()");
 		return false;
 	};
-	std::cerr << "Returnnig from client" <<std::endl;
+	std::cerr << "Returning from client" <<std::endl;
 	return true;
 }
 bool ProcessSetJoin()
@@ -443,7 +444,6 @@ bool ProcessSetJoin()
 bool ProcessEventJoin()
 {
 	fd_set rfdset,efdset;
-	int buf[6];
 
 	FD_ZERO(&rfdset);
 	FD_SET(0, &rfdset);
@@ -452,13 +452,14 @@ bool ProcessEventJoin()
 //	rfdset = efdset;
 //	buf[0] =123;
 	owner = -1;
+	int buf[6];
 	std::cerr << "pred\t";
 	std::cerr << "select vyplul" << select(fd+1, &rfdset, NULL, &efdset, NULL) << std::endl;
 	std::cerr << "\tpo";
 	if (FD_ISSET(fd, &rfdset))
 	{
 		int sz = read(fd,buf,6);
-		owner = buf[0];//TODO check!
+		owner = ntohs(buf[0]);//TODO check!
 		std::cerr << "mam ownera c."<<owner <<  std::endl;
 	}
 	int res;
@@ -490,7 +491,7 @@ bool ProcessEventJoin()
 		FD_SET(0, &rfdset);
 		FD_SET(fd, &rfdset);
 		timeval t;
-		int sz = read(fd,buf,6);
+		int buf4[6];
 		t.tv_sec = 1;
 		res = select (fd + 1, &rfdset, NULL, &efdset, &t);
 		if (res == -1)
@@ -514,6 +515,7 @@ bool ProcessEventJoin()
 			chessboard->pick_up_figure(t1);
 			chessboard->pick_up_figure(t2);
 		}
+		std::cout <<"waiting" << std::endl;
 	}
 	return true;
 }
