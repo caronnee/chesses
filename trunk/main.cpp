@@ -94,9 +94,9 @@ int server()
 				max = new_fd;
 			}
 			fds.push_back(new_fd);
-			int x = fds.size();
+			int x = htonl(fds.size());
 			std::cerr <<"posielam" <<x <<std::endl;
-			std::cerr <<"zapisujem " <<write(new_fd,&x,1)<< " do bufferu"<<std::endl; //TODO checkovat chybove stavy
+			std::cerr <<"zapisujem " <<write(new_fd,&x,sizeof(x))<< " do bufferu"<<std::endl; //TODO checkovat chybove stavy
 		}
 		if (cancel())
 		{
@@ -458,8 +458,8 @@ bool ProcessEventJoin()
 	std::cerr << "\tpo";
 	if (FD_ISSET(fd, &rfdset))
 	{
-		int sz = read(fd,buf,6);
-		owner = ntohs(buf[0]);//TODO check!
+		int sz = read(fd,buf,sizeof(buf));
+		owner = ntohl(buf[0]);//TODO check!
 		std::cerr << "mam ownera c."<<owner <<  std::endl;
 	}
 	int res;
