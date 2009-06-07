@@ -862,7 +862,7 @@ Board::Board()
 }
 void Board:: reset()
 {
-	std::cerr <<"boma";
+	std::cerr <<"bomba"<<std::endl;
 	for (int i =0; i< 48; i++)
 	{
 		delete figures[i];
