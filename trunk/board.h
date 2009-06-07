@@ -26,7 +26,9 @@ struct DoubleLink
 	DoubleLinkItem *head;
 	DoubleLink();
 	void add(int item);
-	void remove(DoubleLinkItem *item);
+	void remove();
+	void next();
+	int val();
 };
 struct Triple
 {
@@ -36,6 +38,12 @@ struct Triple
 	bool operator==(const Triple t);
 	bool operator==(const int i);
 	Triple& operator=(const int i);
+};
+
+struct Pair
+{
+	Triple first;
+	Triple second;
 };
 
 class Figure;
@@ -100,7 +108,7 @@ public:
 	void choosed(); // ak vybrana, zmeni sa jej vyzor..trosku
 	void unchoosed();
 	int moved; //figurka s pohla, dobre pre rosadu, pohyb pawna
-	void remove(); //stane sa nej neaktivna, TODO ak by sa mali aj ukazovat - vlastnost boardu
+	void remove(Gameboard * g); //stane sa nej neaktivna, TODO ak by sa mali aj ukazovat - vlastnost boardu
 	SDL_Surface * display();
 	SDL_Surface * display_name();
 	Figure();
@@ -171,7 +179,9 @@ class Board
 	void display_move(Triple t);
 	bool possible_avoid(Triple t);
 public:
-	int player_on_turn;
+	bool moved;
+	Pair last_move;
+	DoubleLink on_turn;
 	Board();	
 	int get_player();
 	void draw_board(); //prejde cez vsetky figurky, co su na boarde a splitne ich na spravne miesto

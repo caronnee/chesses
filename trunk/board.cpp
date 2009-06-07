@@ -25,7 +25,7 @@ void DoubleLink::add(int val)
 	it->prev = last;
 }
 
-void DoubleLink::remove(DoubleLinkItem * it)
+void DoubleLink::remove()
 {
 	if (head->next == head)
 	{
@@ -33,9 +33,19 @@ void DoubleLink::remove(DoubleLinkItem * it)
 		head = NULL;
 		return;
 	}
+	DoubleLinkItem * it = head;
+	next();
 	it->prev->next = it->next;
-	it->prev->next = it->prev;
+	it->next->prev = it->prev;
 	delete it;
+}
+void DoubleLink::next()
+{
+	head = head->next;
+}
+int DoubleLink::val()
+{
+	return head->value;
 }
 
 Triple::Triple()
@@ -90,10 +100,6 @@ void Figure::unchoosed()
 {
 	display_token = token;
 }
-void Figure::remove()
-{
-	active = false;
-}
 
 SDL_Surface * Figure::display()
 {
@@ -102,7 +108,9 @@ SDL_Surface * Figure::display()
 
 SDL_Surface * Figure::display_name()
 {
-	return name;
+	if (owner>=0)
+		return name;
+	return display_token;
 }
 
 Figure::Figure()
@@ -217,12 +225,9 @@ King::King(Triple t)
 	name =  SDL_LoadBMP("./images/king.bmp");
 	if (name == NULL) std::cerr << "King not found!" <<std::endl;
 	if (token ==NULL) std::cerr << "Token image not loaded!" <<std::endl;
-	//SDL_SetColorKey(token,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
-	//SDL_SetColorKey(name,SDL_SRCCOLORKEY, SDL_MapRGB(choose->format,125,125,125));
 	display_token = token;
 	legal_positions.push_back(t);
 }
-
 void King::check(Gameboard *g)
 {
 	Triple pos =  legal_positions[0];
@@ -779,6 +784,7 @@ std::vector<Triple> Pawn::threats()
 Board::Board()
 {
 	win = -1;
+	moved = false;
 	float size_x = RADIUS/8;//velkost nasho kroku
 	float coord_x, coord_y_l, coord_y_l_last;
 	int heigth = RADIUS * 1.73 /2; //nasa vyska
@@ -786,7 +792,8 @@ Board::Board()
 	coord_y_l = 1.83*RADIUS / 3;//vyska toho najposlednejsie (najviac vlavo)
 	board_img = SDL_LoadBMP("./images/chessboard.bmp");
 	choosed = -1;
-	player_on_turn = 0;
+	for (int i =0; i< 3; i++)
+		on_turn.add(i);
 	for (int x = 0; x<4; x++)
 	{
 		coord_x = CENTER_X + (x-4)*size_x;
@@ -891,7 +898,6 @@ void Board:: reset()
 	{
 		figures[i]->check(&board); //nastavi aj figuram
 	}
-	player_on_turn = 0;
 	draw_board();
 }
 void Board::suggest_figure(Figure *f,Triple t)
@@ -987,7 +993,7 @@ bool Board::pick_up_figure(Triple new_choose)
 	if (choosed.z == -1) //este sme nic nevybrali
 	{
 		Figure * f = board[new_choose].occupied();
-		if (( f == NULL)||(f->public_owner & ~(1<< player_on_turn))||(!f->active))
+		if (( f == NULL)||(f->public_owner & ~(1<< on_turn.val()))||(!f->active))
 			return false;
 		f->choosed();
 		display_figure(new_choose);
@@ -1006,6 +1012,9 @@ bool Board::pick_up_figure(Triple new_choose)
 		f->unchoosed();
 		if (!f->move(&board,new_choose)) //ak sa nepodarilo presunut,
 		{
+			moved = true;
+			last_move.first = choosed;
+			last_move.second = new_choose;
 			draw_board();
 			Figure * f2 = board[new_choose].occupied();
 			if (f2!=NULL) //a sucasne je owner na tahu
@@ -1092,18 +1101,14 @@ bool Board::pick_up_figure(Triple new_choose)
 			std::cerr <<" === "<<board[ooo].players_attack[1];
 			std::cerr <<" === "<<board[ooo].players_attack[2]<<std::endl;
 			
-			player_on_turn = (player_on_turn +1) %3;
-			while (!figures[16*player_on_turn +3]->active)
-				player_on_turn = (player_on_turn +1) %3;
-			Triple attacked = figures[16*player_on_turn +3]->moves()[0];
-			if (board[attacked].sum - board[attacked].players_attack[player_on_turn] > 0)
+			on_turn.next();
+			Triple attacked = figures[16*on_turn.val() +3]->moves()[0];
+			if (board[attacked].sum - board[attacked].players_attack[on_turn.val()] > 0)
 				if (!possible_avoid(attacked))
 				{
 					for (int i = 0; i<16; i++)
 					{
-						figures[16*player_on_turn + i]->public_owner = ~0;
-						//TODO nejaky prihladny vzor, aby sa to odlisilo
-						//popripade zmenit 
+						figures[16*on_turn.val() + i]->remove(&board);
 					}
 				}
 			draw_board();
@@ -1111,6 +1116,13 @@ bool Board::pick_up_figure(Triple new_choose)
 	}
 	SDL_Flip(screen);
 	return false;
+}
+void Figure::remove(Gameboard * g)
+{
+	std::cout << "removing!" <<std::endl;
+	clear(g);
+	public_owner = ~0;
+	owner = -1;
 }
 void Board::display_move(Triple pos)
 {
@@ -1140,9 +1152,9 @@ bool Board::possible_avoid(Triple t)
 	//ak to niek to moze zblokovat
 	for(unsigned int i = 0; i< 16; i++)
 	{
-		if (!figures[player_on_turn*16 + i]->active)
+		if (!figures[on_turn.val()*16 + i]->active)
 			continue;
-		std::vector<Triple> m = figures[player_on_turn*16 + i]->moves();
+		std::vector<Triple> m = figures[on_turn.val()*16 + i]->moves();
 		Triple old_position = m[0];
 		for (unsigned int a = 1; a < m.size(); a++)
 		{

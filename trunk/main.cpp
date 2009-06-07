@@ -38,6 +38,7 @@ Board * chessboard;
 std::vector<int> fds;
 bool done;
 int fd, max;
+int owner;
 
 bool cancel()
 {
@@ -83,16 +84,19 @@ int server()
 
 	fcntl(fd, F_SETFL, O_NONBLOCK);
 	max = 0;
-	while (fds.size()<2) {
-
+	while (fds.size()<2) 
+	{
 		if ((new_fd = accept(fd, (sockaddr *) &client_address, (socklen_t *)&client_address_sz))!=-1){
 			printf("Acceptnul jsem klienta...\n");
 			if (max < new_fd)
 			{
-				std::cout << "zvysujm"<<std::endl;
+				std::cerr << "zvysujem"<<std::endl;
 				max = new_fd;
 			}
 			fds.push_back(new_fd);
+			int x = fds.size();
+			std::cerr <<"posielam" <<x <<std::endl;
+			std::cerr <<"zapisujem " <<write(new_fd,&x,1)<< " do bufferu"<<std::endl; //TODO checkovat chybove stavy
 		}
 		if (cancel())
 		{
@@ -100,6 +104,7 @@ int server()
 			return -1;
 		}
 	}
+	std::cerr<< "mmmm";
 	return 0;
 }
 
@@ -112,7 +117,7 @@ int Init(int width, int height, int bpp, Uint32 flags)
 	// Inicializace SDL
 	if(SDL_Init(SDL_SUBSYSTEMS) == -1)
 	{
-		std::cout << "baaad";
+		std::cerr << "baaad";
 		return false;
 	}
 
@@ -127,7 +132,7 @@ int Init(int width, int height, int bpp, Uint32 flags)
 
 		if(bpp == 0)
 		{
-			std::cout << "SDL_VideoModeOK(): Parameters are not ";
+			std::cerr << "SDL_VideoModeOK(): Parameters are not ";
 
 			// Hodnota bpp byla prepsana volanim SDL_VideoModeOK()
 			bpp = SDL_GetVideoInfo()->vfmt->BitsPerPixel;
@@ -138,7 +143,7 @@ int Init(int width, int height, int bpp, Uint32 flags)
 
 			if(modes == (SDL_Rect **)0)// Zadne dostupne mody
 			{
-				std::cout << "SDL_ListModes(): No modes available\n";
+				std::cerr << "SDL_ListModes(): No modes available\n";
 				return false;
 			}
 			else if(modes == (SDL_Rect **)-1)// Zadna omezeni
@@ -204,7 +209,7 @@ int ProcessEvent()
 						break;
 
 					case SDLK_r:
-						std::cout << " ha!";
+						std::cerr << " ha!";
 						chessboard->reset();
 						break;
 					default:
@@ -275,13 +280,6 @@ int menu()
 			case SDL_QUIT:
 				return false;
 				break;
-			case SDL_MOUSEBUTTONDOWN:
-				{
-					if(!done)
-						done = chessboard->pick_up_figure(event.button.x, event.button.y);
-					break;
-				}
-
 			default:
 				break;
 		}
@@ -323,7 +321,7 @@ int talk(Triple * t1, Triple * t2)
 bool ProcessEventHost()
 {
 	int buf[6];
-	if (chessboard->player_on_turn!=0)//prijimac sockety a rozposielal dalej
+	if (chessboard->on_turn.val()!=0)//prijimac sockety a rozposielal dalej
 	{
 		if (cancel())
 			return true;
@@ -332,10 +330,8 @@ bool ProcessEventHost()
 		if (res == -1)
 			return true;
 		chessboard->pick_up_figure(t1);
-		res = chessboard->pick_up_figure(t2);
-		if (res == -1)
-			return -1;
-		int iter = chessboard->player_on_turn%2;
+		chessboard->pick_up_figure(t2);
+		int iter = chessboard->on_turn.val()%2;//na rade je 0-> bola 1 a posle sa 1, 2-? na rade bola 1 a posle sa 0 alias 2:)
 		buf[0] = t1.x;buf[1] = t1.y;buf[2] = t1.z;
 		buf[3] = t1.x;buf[4] = t1.y;buf[5] = t1.z;
 		res = write(fds[iter], buf, 6);
@@ -345,7 +341,23 @@ bool ProcessEventHost()
 		}
 		return false;
 	}
-	else return ProcessEvent();
+	else 
+	{
+		bool res = ProcessEvent(); //a sendni ostatnym
+		if (chessboard->moved)
+		{
+			chessboard->moved = false;
+			buf[0] = chessboard->last_move.first.x;
+			buf[1] = chessboard->last_move.first.y;
+			buf[2] = chessboard->last_move.first.z;
+			buf[3] = chessboard->last_move.second.x;
+			buf[4] = chessboard->last_move.second.y;
+			buf[5] = chessboard->last_move.second.z;
+			for (unsigned int i = 0; i < fds.size();i++)
+				write(fd,buf,6);
+		}
+		return res;//TODO zobecnit pre booly a pre inty
+	}
 	return false;
 }
 
@@ -370,10 +382,11 @@ bool client()
 	struct sockaddr_in server_address;
 	int port;
 
+	std::cerr << "snazim sa pripojit"<<std::endl;
 	port = 10000;
 	if (!(serverova_obcanka = gethostbyname(server_name))) {
 		fprintf(stderr, "Cannot resolve server address\n");
-		return -1;
+		return false;
 	}
 	server_address.sin_family = AF_INET;
 	server_address.sin_port = htons(port);
@@ -382,17 +395,18 @@ bool client()
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	{
 		perror("socket()");
-		return -1;
+		return false;
 	}
 	if (connect(fd, (struct sockaddr *)&server_address,sizeof(server_address)) < 0) {
 		perror("connect()");
-		return -1;
+		return false;
 	};
-	return 0;
+	std::cerr << "Returnnig from client" <<std::endl;
+	return true;
 }
 bool ProcessSetJoin()
 {
-	bool done = false;
+	//bool done = false;
 	std::string user_port;
 	std::string server_name;
 	SDL_Event e;
@@ -428,16 +442,80 @@ bool ProcessSetJoin()
 }
 bool ProcessEventJoin()
 {
-	int buf[6];
-	int res;
 	fd_set rfdset,efdset;
+	int buf[6];
+
 	FD_ZERO(&rfdset);
 	FD_SET(0, &rfdset);
 	FD_SET(fd, &rfdset);
-	timeval t;
-	t.tv_sec = 1;
-	res = select (fd + 1, &rfdset, NULL, &efdset, &t);
-	return false;
+
+//	rfdset = efdset;
+//	buf[0] =123;
+	owner = -1;
+	std::cerr << "pred\t";
+	std::cerr << "select vyplul" << select(fd+1, &rfdset, NULL, &efdset, NULL) << std::endl;
+	std::cerr << "\tpo";
+	if (FD_ISSET(fd, &rfdset))
+	{
+		int sz = read(fd,buf,6);
+		owner = buf[0];//TODO check!
+		std::cerr << "mam ownera c."<<owner <<  std::endl;
+	}
+	int res;
+	while (true)
+	{
+		std::cerr << owner << "\t";
+		std::cerr << owner <<std::endl;
+		if (cancel())
+			return true;
+		if (chessboard->on_turn.val() == owner)
+		{
+			
+			std::cerr<<"he??:";
+			bool res = ProcessEvent();
+			if (chessboard->moved)
+			{
+				int buf2[6];
+				buf2[0]=chessboard->last_move.first.x;
+				buf2[1]=chessboard->last_move.first.y;
+				buf2[2]=chessboard->last_move.first.z;
+				buf2[3]=chessboard->last_move.second.x;
+				buf2[4]=chessboard->last_move.second.y;
+				buf2[5]=chessboard->last_move.second.z;
+				int sz = write(fd,buf2,6);
+			}
+			continue;
+		}
+		FD_ZERO(&rfdset);
+		FD_SET(0, &rfdset);
+		FD_SET(fd, &rfdset);
+		timeval t;
+		int sz = read(fd,buf,6);
+		t.tv_sec = 1;
+		res = select (fd + 1, &rfdset, NULL, &efdset, &t);
+		if (res == -1)
+		{
+			perror("select()");
+			exit(1);
+		}
+		if (FD_ISSET(fd, &rfdset))
+		{
+			int buf3[6];
+			int sz = read(fd,buf3,6);
+			if (sz == -1)
+				return true;//padol na spatnom vstupe
+			if (sz == 0)
+			{
+				std::cerr << "Eof na vstupe" <<std::endl;
+				return true;
+			}
+			Triple t1(buf3[0],buf3[1],buf3[2]);
+			Triple t2(buf3[3],buf3[4],buf3[5]);
+			chessboard->pick_up_figure(t1);
+			chessboard->pick_up_figure(t2);
+		}
+	}
+	return true;
 }
 
 int main(int argc, char *argv[])
@@ -479,8 +557,8 @@ int main(int argc, char *argv[])
 			while (adr!=NULL)
 			{
 				std::string name = adr->d_name;
-				if(end_with(name,".dat"))
-					std::cout <<name<<std::endl;
+				if(end_with(name,".chs"))
+					std::cerr <<name<<std::endl;
 				adr = readdir(dir);
 			}
 			chessboard = new Board();
@@ -497,7 +575,7 @@ int main(int argc, char *argv[])
 			int done = 0;
 			fds.clear();
 			int ret = server();
-			if (ret!=0) {std::cout << "Niekde nastala chyba" << std::endl; continue;}
+			if (ret!=0) {std::cerr << "Niekde nastala chyba" << std::endl; continue;}
 			chessboard = new Board();
 			chessboard->draw_board();
 			while(!done)
@@ -511,17 +589,22 @@ int main(int argc, char *argv[])
 		{
 			int done = 0;
 			fds.clear();
-			if(!client())
+		/*	bool ok = ProcessSetJoin();
+			if (!ok)
 			{
-				printf("nepodarilo sa pripojit");
+				std::cerr <<"Nieco spatne parametre"<<std::endl;
+			       continue;	
+			}*/
+			bool ok = client();
+			std::cerr << ok <<std::endl;
+			if(!ok)
+			{
+				printf("Nepodarilo sa pripojit");
 				break;
 			}
 			chessboard = new Board();
 			chessboard->draw_board();
-			while(!done)
-			{
-				done = !ProcessEventJoin();
-			}
+			ProcessEventJoin();
 			close(fd);
 			delete chessboard;
 		}
