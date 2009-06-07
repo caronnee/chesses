@@ -78,7 +78,7 @@ int server()
 	}
 
 	client_address_sz = sizeof(client_address);
-	if (listen(fd, 1) == -1) { perror("listen()"); return -1;}
+	if (listen(fd, 3) == -1) { perror("listen()"); return -1;}
 
 	printf("Listening\n");
 
@@ -96,7 +96,7 @@ int server()
 			fds.push_back(new_fd);
 			int x = htonl(fds.size());
 			std::cerr <<"posielam" <<x <<std::endl;
-			std::cerr <<"zapisujem " <<write(new_fd,&x,sizeof(x))<< " do bufferu"<<std::endl; //TODO checkovat chybove stavy
+			std::cerr <<"zapisujem " <<write(new_fd,&x,sizeof(int))<< " do bufferu"<<std::endl; //TODO checkovat chybove stavy
 		}
 		if (cancel())
 		{
@@ -148,7 +148,7 @@ int Init(int width, int height, int bpp, Uint32 flags)
 			}
 			else if(modes == (SDL_Rect **)-1)// Zadna omezeni
 			{
-				width = 640;
+				width = 1040;
 				height = 480;
 			}
 			else// Pouzije maximalni dostupne rozmery
@@ -293,21 +293,23 @@ int talk(Triple * t1, Triple * t2)
 	int sock;
 	int sz;
 	fd_set rfdset,efdset;
-	char buf[6];
 	timeval delay;
 	delay.tv_sec = 1;
 	FD_ZERO(&rfdset);
 	for (unsigned int i = 0; i< fds.size(); i++)
 		FD_SET(fds[i], &rfdset);
 	efdset = rfdset;
+	std::cerr << "hey hou" <<std::endl;
 	sock = select (max + 1, &rfdset, NULL, &efdset, &delay);
+	std::cerr << "hey hou2" <<std::endl;
 	if (sock > 0)//mame odpoved
 	{
 		for (unsigned int i =0; i< fds.size(); i++)
 			if (FD_ISSET(fds[i],&rfdset))
 			{
-				sz = read(fds[i],buf,6);
-				if (sz==6)//mame triple
+				int buf[10];
+				sz = read(fds[i],buf,10);
+				if (sz==10)//mame triple
 				{
 					printf("mam");
 					(*t1) = Triple(buf[0],buf[1],buf[2]);
@@ -315,35 +317,46 @@ int talk(Triple * t1, Triple * t2)
 				}
 			}
 	}
-	return false; //TODO nejake vynimky
+	std::cout << "dokecane" <<std::endl;
+	return 0; //TODO nejake vynimky
 }
 
 //OK
 bool ProcessEventHost()
 {
-	int buf[6];
+	std::cerr << "na rade je:" <<chessboard->on_turn.val();
 	if (chessboard->on_turn.val()!=0)//prijimac sockety a rozposielal dalej
 	{
+		int bufxxx[10];
+		std::cerr << "Waiting" << chessboard->on_turn.val()<<std::endl;
 		if (cancel())
 			return true;
 		Triple t1,t2;
 	       	int res	= talk(&t1, &t2);
-		if (res == -1)
+		std::cerr << "dokecala som" <<res << std::endl;
+		if (res == -1) //chyba kecania
 			return true;
+		if (res == 0)
+		{
+			std::cerr << "returnujem" <<std::endl;
+			return false;
+		}
+		std::cerr << "picking up figure" <<std::endl;
 		chessboard->pick_up_figure(t1);
 		chessboard->pick_up_figure(t2);
 		int iter = chessboard->on_turn.val()%2;//na rade je 0-> bola 1 a posle sa 1, 2-? na rade bola 1 a posle sa 0 alias 2:)
-		buf[0] = t1.x;buf[1] = t1.y;buf[2] = t1.z;
-		buf[3] = t1.x;buf[4] = t1.y;buf[5] = t1.z;
-		res = write(fds[iter], buf, 6);
+		bufxxx[0] = t1.x;bufxxx[1] = t1.y;bufxxx[2] = t1.z;
+		bufxxx[3] = t1.x;bufxxx[4] = t1.y;bufxxx[5] = t1.z;
+		res = write(fds[iter], bufxxx, sizeof(bufxxx));
 		if (res == -1)
 		{
 			std::cerr<<"write bad"<< std::endl;
 		}
-		return false;
 	}
 	else 
 	{
+		int buf[10];
+		std::cout << "Not waiting" <<chessboard->on_turn.val()<<std::endl;
 		bool res = ProcessEvent(); //a sendni ostatnym
 		if (chessboard->moved)
 		{
@@ -355,7 +368,7 @@ bool ProcessEventHost()
 			buf[4] = chessboard->last_move.second.y;
 			buf[5] = chessboard->last_move.second.z;
 			for (unsigned int i = 0; i < fds.size();i++)
-				write(fd,buf,6);
+				write(fds[i],buf,sizeof(buf));
 		}
 		return res;//TODO zobecnit pre booly a pre inty
 	}
@@ -452,13 +465,12 @@ bool ProcessEventJoin()
 //	rfdset = efdset;
 //	buf[0] =123;
 	owner = -1;
-	int buf[6];
-	std::cerr << "pred\t";
-	std::cerr << "select vyplul" << select(fd+1, &rfdset, NULL, &efdset, NULL) << std::endl;
-	std::cerr << "\tpo";
+	int buf[10];
+	if (select(fd+1, &rfdset, NULL, &efdset, NULL)==-1)
+	       perror("select()");
 	if (FD_ISSET(fd, &rfdset))
 	{
-		int sz = read(fd,buf,sizeof(buf));
+		int sz = read(fd,buf,10);
 		owner = ntohl(buf[0]);
 		std::cerr << "mam ownera c."<<owner <<  std::endl;
 	}
@@ -466,24 +478,24 @@ bool ProcessEventJoin()
 	while (true)
 	{
 		std::cerr << owner << "\t";
-		std::cerr << owner <<std::endl;
 		if (cancel())
 			return true;
 		if (chessboard->on_turn.val() == owner)
 		{
-			
-			std::cerr<<"he??:";
+			std::cout << "Not waiting" << chessboard->on_turn.val()<<std::endl;
 			bool res = ProcessEvent();
 			if (chessboard->moved)
 			{
-				int buf2[6];
+				int buf2[10];
+				chessboard->moved = false;
 				buf2[0]=chessboard->last_move.first.x;
 				buf2[1]=chessboard->last_move.first.y;
 				buf2[2]=chessboard->last_move.first.z;
 				buf2[3]=chessboard->last_move.second.x;
 				buf2[4]=chessboard->last_move.second.y;
 				buf2[5]=chessboard->last_move.second.z;
-				int sz = write(fd,buf2,6);
+				int sz = write(fd,buf2,sizeof(buf2));
+				std::cerr << sz << "__" <<std::endl;
 			}
 			continue;
 		}
@@ -491,7 +503,7 @@ bool ProcessEventJoin()
 		FD_SET(0, &rfdset);
 		FD_SET(fd, &rfdset);
 		timeval t;
-		int buf4[6];
+		int buf4[10];
 		t.tv_sec = 1;
 		res = select (fd + 1, &rfdset, NULL, &efdset, &t);
 		if (res == -1)
@@ -501,8 +513,9 @@ bool ProcessEventJoin()
 		}
 		if (FD_ISSET(fd, &rfdset))
 		{
-			int buf3[6];
-			int sz = read(fd,buf3,6);
+			std::cout << "echmechm!"<<std::endl;
+			int buf3[10];
+			int sz = read(fd,buf3,10);
 			if (sz == -1)
 				return true;//padol na spatnom vstupe
 			if (sz == 0)
@@ -515,7 +528,7 @@ bool ProcessEventJoin()
 			chessboard->pick_up_figure(t1);
 			chessboard->pick_up_figure(t2);
 		}
-		std::cout <<"waiting" << std::endl;
+		std::cout <<"waiting" <<chessboard->on_turn.val()<< std::endl;
 	}
 	return true;
 }
@@ -582,7 +595,9 @@ int main(int argc, char *argv[])
 			chessboard->draw_board();
 			while(!done)
 			{
+				std::cerr << "leziem do processEventu" <<std::endl;
 				done = !ProcessEventHost();
+				std::cerr << "leziem z processEventu" <<std::endl;
 			}
 			close(fd);
 			delete chessboard;

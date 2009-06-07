@@ -1012,7 +1012,6 @@ bool Board::pick_up_figure(Triple new_choose)
 		f->unchoosed();
 		if (!f->move(&board,new_choose)) //ak sa nepodarilo presunut,
 		{
-			moved = true;
 			last_move.first = choosed;
 			last_move.second = new_choose;
 			draw_board();
@@ -1030,6 +1029,7 @@ bool Board::pick_up_figure(Triple new_choose)
 		}
 		else 
 		{
+			moved = true;
 			if (f->moves().size() == 0)
 			{
 				//promote!
