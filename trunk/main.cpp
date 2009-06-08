@@ -205,11 +205,11 @@ int ProcessEvent()
 				switch(event.key.keysym.sym)
 				{
 					case SDLK_ESCAPE:
+					case SDLK_q:
 						return false;
 						break;
 
 					case SDLK_r:
-						std::cerr << " ha!";
 						chessboard->reset();
 						break;
 					default:
@@ -251,7 +251,6 @@ enum Menu
 int menu()
 {
 	SDL_Event event;
-
 	while(SDL_WaitEvent(&event))
 	{
 		switch(event.type)
@@ -299,11 +298,10 @@ int talk(Triple * t1, Triple * t2)
 	for (unsigned int i = 0; i< fds.size(); i++)
 		FD_SET(fds[i], &rfdset);
 	efdset = rfdset;
-	std::cerr << "hey hou" <<std::endl;
 	sock = select (max + 1, &rfdset, NULL, &efdset, &delay);
-	std::cerr << "hey hou2" <<std::endl;
 	if (sock > 0)//mame odpoved
 	{
+		std::cout << "IN" << std::endl;
 		for (unsigned int i =0; i< fds.size(); i++)
 			if (FD_ISSET(fds[i],&rfdset))
 			{
@@ -312,41 +310,51 @@ int talk(Triple * t1, Triple * t2)
 				if (sz==10)//mame triple
 				{
 					printf("mam");
-					(*t1) = Triple(buf[0],buf[1],buf[2]);
-					(*t2) = Triple(buf[3],buf[4],buf[5]);
+					(*t1) = Triple(ntohl(buf[0]),ntohl(buf[1]),ntohl(buf[2]));
+					(*t2) = Triple(ntohl(buf[3]),ntohl(buf[4]),ntohl(buf[5]));
 				}
 			}
+		bool ex = false;
+		for (unsigned int i =0; i< fds.size(); i++)
+			if (FD_ISSET(fds[i],&efdset))
+			{
+				ex = true;
+				std::cout << "vypadol user" << i << std::endl;
+			}
+		if (ex)
+			return -1;
 	}
-	std::cout << "dokecane" <<std::endl;
 	return 0; //TODO nejake vynimky
 }
 
 //OK
 bool ProcessEventHost()
 {
-	std::cerr << "na rade je:" <<chessboard->on_turn.val();
 	if (chessboard->on_turn.val()!=0)//prijimac sockety a rozposielal dalej
 	{
 		int bufxxx[10];
-		std::cerr << "Waiting" << chessboard->on_turn.val()<<std::endl;
+		std::cerr << "------------" << chessboard->on_turn.val();
 		if (cancel())
+		{
+			std::cout <<"exitted"<<std::endl;
 			return true;
+			}
 		Triple t1,t2;
 	       	int res	= talk(&t1, &t2);
-		std::cerr << "dokecala som" <<res << std::endl;
 		if (res == -1) //chyba kecania
-			return true;
+			return false;
 		if (res == 0)
 		{
-			std::cerr << "returnujem" <<std::endl;
-			return false;
+			std::cerr << "@returnujem" <<std::endl;
+			return true;
 		}
 		std::cerr << "picking up figure" <<std::endl;
 		chessboard->pick_up_figure(t1);
 		chessboard->pick_up_figure(t2);
 		int iter = chessboard->on_turn.val()%2;//na rade je 0-> bola 1 a posle sa 1, 2-? na rade bola 1 a posle sa 0 alias 2:)
-		bufxxx[0] = t1.x;bufxxx[1] = t1.y;bufxxx[2] = t1.z;
-		bufxxx[3] = t1.x;bufxxx[4] = t1.y;bufxxx[5] = t1.z;
+		bufxxx[0] = htonl(t1.x);bufxxx[1] = htonl(t1.y);bufxxx[2] = htonl(t1.z);
+		bufxxx[3] = htonl(t2.x);bufxxx[4] = htonl(t2.y);bufxxx[5] = htonl(t2.z);
+		std::cout << "velkost " << sizeof(bufxxx) <<std::endl;
 		res = write(fds[iter], bufxxx, sizeof(bufxxx));
 		if (res == -1)
 		{
@@ -361,18 +369,18 @@ bool ProcessEventHost()
 		if (chessboard->moved)
 		{
 			chessboard->moved = false;
-			buf[0] = chessboard->last_move.first.x;
-			buf[1] = chessboard->last_move.first.y;
-			buf[2] = chessboard->last_move.first.z;
-			buf[3] = chessboard->last_move.second.x;
-			buf[4] = chessboard->last_move.second.y;
-			buf[5] = chessboard->last_move.second.z;
+			buf[0] = htonl(chessboard->last_move.first.x);
+			buf[1] = htonl(chessboard->last_move.first.y);
+			buf[2] = htonl(chessboard->last_move.first.z);
+			buf[3] = htonl(chessboard->last_move.second.x);
+			buf[4] = htonl(chessboard->last_move.second.y);
+			buf[5] = htonl(chessboard->last_move.second.z);
 			for (unsigned int i = 0; i < fds.size();i++)
 				write(fds[i],buf,sizeof(buf));
 		}
 		return res;//TODO zobecnit pre booly a pre inty
 	}
-	return false;
+	return true;
 }
 
 bool end_with(std::string s1, std::string s2)
@@ -488,12 +496,12 @@ bool ProcessEventJoin()
 			{
 				int buf2[10];
 				chessboard->moved = false;
-				buf2[0]=chessboard->last_move.first.x;
-				buf2[1]=chessboard->last_move.first.y;
-				buf2[2]=chessboard->last_move.first.z;
-				buf2[3]=chessboard->last_move.second.x;
-				buf2[4]=chessboard->last_move.second.y;
-				buf2[5]=chessboard->last_move.second.z;
+				buf2[0]=htonl(chessboard->last_move.first.x);
+				buf2[1]=htonl(chessboard->last_move.first.y);
+				buf2[2]=htonl(chessboard->last_move.first.z);
+				buf2[3]=htonl(chessboard->last_move.second.x);
+				buf2[4]=htonl(chessboard->last_move.second.y);
+				buf2[5]=htonl(chessboard->last_move.second.z);
 				int sz = write(fd,buf2,sizeof(buf2));
 				std::cerr << sz << "__" <<std::endl;
 			}
@@ -523,8 +531,10 @@ bool ProcessEventJoin()
 				std::cerr << "Eof na vstupe" <<std::endl;
 				return true;
 			}
-			Triple t1(buf3[0],buf3[1],buf3[2]);
-			Triple t2(buf3[3],buf3[4],buf3[5]);
+			Triple t1(ntohl(buf3[0]),ntohl(buf3[1]),ntohl(buf3[2]));
+			Triple t2(ntohl(buf3[3]),ntohl(buf3[4]),ntohl(buf3[5]));
+			std::cout << t1.x << " "<< t1.y << " "<< t1.z << " "<< t2.x << " "<< t2.y << " " << t2.z << std::endl;
+			exit(8);
 			chessboard->pick_up_figure(t1);
 			chessboard->pick_up_figure(t2);
 		}
@@ -548,13 +558,13 @@ int main(int argc, char *argv[])
 	int m = -1;
 	while (m!= Exit)
 	{
+		done = false;	
 		m= menu();
 		while (m < 0)
 			m = menu();
 		// Hlavni smycka programu
 		if (m == Play)
 		{
-			int done = 0;
 			chessboard = new Board();
 			//			SDL_SetColorKey(screen,SDL_SRCCOLORKEY, SDL_MapRGB(screen->format,125,125,125));
 			chessboard->draw_board();
@@ -599,6 +609,7 @@ int main(int argc, char *argv[])
 				done = !ProcessEventHost();
 				std::cerr << "leziem z processEventu" <<std::endl;
 			}
+			std::cerr << "OUT" <<std::endl;
 			close(fd);
 			delete chessboard;
 		}
