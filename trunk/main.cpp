@@ -32,6 +32,7 @@
 /*
  * Globalni promenne
  */
+#define PORT 10001
 
 SDL_Surface *screen;
 Board * chessboard;
@@ -59,7 +60,7 @@ int server()
 	//struct servent *sp;
 	struct sockaddr_in server_address, client_address;
 
-	port = 10000;//TODO opravit na najblizsi volny port
+	port = PORT;//TODO opravit na najblizsi volny port
 	
 	//TODO ako funguje getservbyname???
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
@@ -376,7 +377,7 @@ bool ProcessEventHost()
 			buf[4] = htonl(chessboard->last_move.second.y);
 			buf[5] = htonl(chessboard->last_move.second.z);
 			for (unsigned int i = 0; i < fds.size();i++)
-				write(fds[i],buf,sizeof(buf));
+				std::cout << write(fds[i],buf,sizeof(int)*10) << "posielam tolkoto bajtov"<<std::endl;
 		}
 		return res;//TODO zobecnit pre booly a pre inty
 	}
@@ -405,7 +406,7 @@ bool client()
 	int port;
 
 	std::cerr << "snazim sa pripojit"<<std::endl;
-	port = 10000;
+	port = PORT;
 	if (!(serverova_obcanka = gethostbyname(server_name))) {
 		fprintf(stderr, "Cannot resolve server address\n");
 		return false;
@@ -470,8 +471,7 @@ bool ProcessEventJoin()
 	FD_SET(0, &rfdset);
 	FD_SET(fd, &rfdset);
 
-//	rfdset = efdset;
-//	buf[0] =123;
+	efdset = rfdset;
 	owner = -1;
 	int buf[10];
 	if (select(fd+1, &rfdset, NULL, &efdset, NULL)==-1)
@@ -510,6 +510,7 @@ bool ProcessEventJoin()
 		FD_ZERO(&rfdset);
 		FD_SET(0, &rfdset);
 		FD_SET(fd, &rfdset);
+		efdset = rfdset;
 		timeval t;
 		int buf4[10];
 		t.tv_sec = 1;
@@ -523,7 +524,8 @@ bool ProcessEventJoin()
 		{
 			std::cout << "echmechm!"<<std::endl;
 			int buf3[10];
-			int sz = read(fd,buf3,10);
+			int sz = read(fd,buf3,sizeof(int)*10);
+			std::cout << sizeof(int)*10 << ":" << sz <<std::endl;
 			if (sz == -1)
 				return true;//padol na spatnom vstupe
 			if (sz == 0)
@@ -533,7 +535,7 @@ bool ProcessEventJoin()
 			}
 			Triple t1(ntohl(buf3[0]),ntohl(buf3[1]),ntohl(buf3[2]));
 			Triple t2(ntohl(buf3[3]),ntohl(buf3[4]),ntohl(buf3[5]));
-			std::cout << t1.x << " "<< t1.y << " "<< t1.z << " "<< t2.x << " "<< t2.y << " " << t2.z << std::endl;
+			std::cout << (unsigned int) t1.x << " "<< t1.y << " "<< t1.z << " "<< t2.x << " "<< t2.y << " " << t2.z << std::endl;
 			exit(8);
 			chessboard->pick_up_figure(t1);
 			chessboard->pick_up_figure(t2);
