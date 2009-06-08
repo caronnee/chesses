@@ -61,7 +61,7 @@ public:
 	int get_y();
 	void occupy(Figure * ID);
 	Figure * occupied();
-	void set(int x, int y);//coordinates spocitane boardom
+	void set(float x, float y);//coordinates spocitane boardom
 	Place();
 	void reset();
 };
