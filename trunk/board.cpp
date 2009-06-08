@@ -191,10 +191,10 @@ Place::Place()
 		players_attack[i] = 0;
 	sum = 0;
 }
-void Place::set(int x, int y)
+void Place::set(float x, float y)
 {
-	coord_x = x;
-	coord_y = y;
+	coord_x = (int) x;
+	coord_y = (int) y;
 }
 
 void Place::occupy(Figure * ID)
@@ -787,8 +787,8 @@ Board::Board()
 	moved = false;
 	float size_x = RADIUS/8;//velkost nasho kroku
 	float coord_x, coord_y_l, coord_y_l_last;
-	int heigth = RADIUS * 1.73 /2; //nasa vyska
-	int base = CENTER_Y + heigth;
+	float heigth = RADIUS * 1.73 /2; //nasa vyska
+	float base = CENTER_Y + heigth;
 	coord_y_l = 1.83*RADIUS / 3;//vyska toho najposlednejsie (najviac vlavo)
 	board_img = SDL_LoadBMP("./images/chessboard.bmp");
 	choosed = -1;
@@ -801,21 +801,21 @@ Board::Board()
 		coord_y_l = coord_y_l_last + (RADIUS*1.73)/24;
 		for (int y = 0; y < 4; y++)
 		{
-			int pom2 = coord_y_l/4; 
-			int pom1 = coord_y_l_last/4; //velkost kroku na oboch stranach
-			int coord_y;
-			int diff = (pom2 - pom1)/2;//prirastok
+			float pom2 = coord_y_l /4; 
+			float pom1 = coord_y_l_last /4; //velkost kroku na oboch stranach
+			float coord_y;
+			float diff = (pom2 - pom1) /2;//prirastok
 
 			if (x<4)	
 				coord_y = base - (pom1*y + pom1/2  + diff); 
 			else
 				coord_y = base - (pom1*y + pom2/2  + diff);
-			int rot_x = coord_x + size_x/2 - CENTER_X;
-			int rot_y = coord_y - CENTER_Y;
-			int rot_x_2 = rot_x + size_x*(7-2*x);
+			float rot_x = coord_x + size_x/2 - CENTER_X;
+			float rot_y = coord_y - CENTER_Y;
+			float rot_x_2 = rot_x + size_x*(7-2*x);
 			for (int player = 0; player < 3; player++)
 			{
-				board.board[player][x][y].set(rot_x * cos(2*3.14*(player)/3) - rot_y*sin(2*3.14*(player)/3)+ CENTER_X,
+board.board[player][x][y].set(rot_x * cos(2*3.14*(player)/3) - rot_y*sin(2*3.14*(player)/3)+ CENTER_X,
 						rot_x * sin(2*3.14*(player)/3) + rot_y*cos(2*3.14*(player)/3)+ CENTER_Y);
 				board.board[player][7-x][y].set(rot_x_2 * cos(2*3.14*(player)/3) - rot_y*sin(2*3.14*(player)/3)+ CENTER_X,
 						rot_x_2 * sin(2*3.14*(player)/3) + rot_y*cos(2*3.14*(player)/3)+ CENTER_Y);
@@ -952,7 +952,7 @@ bool Board::pick_up_figure(int x, int y)
 {
 //	printf("Suradnice %d %d\n", x,y);
 	Triple new_choose;
-	int x_coord, y_coord, x_old, y_old;
+	float x_coord, y_coord, x_old, y_old;
 	x_coord = x;
 	y_coord = y;
 	bool found = false;
@@ -964,12 +964,12 @@ bool Board::pick_up_figure(int x, int y)
 		y_coord = (x_old -CENTER_X)*( sin(2*3.14/3)) + (y_old - CENTER_Y) * (cos(2*3.14/3)) + CENTER_Y; //Ako prvy bude player 3
 		for(int j = 0; j < BOARD_X_MAX; j++)
 		{
-			int diff_x = board.board[0][j][0].get_x() - x_coord; 
+			float diff_x = board.board[0][j][0].get_x() - x_coord; 
 			//printf("\tdiff : %d, [%d %d 0] %d %d \n",diff_x, i, j, board[i][j][0].get_x(), x_coord);
 			if ((diff_x <= TOKEN_WIDTH / 2)&&(diff_x>= -TOKEN_WIDTH/2)) //ak je rozdiel X dostatocne maly, potom sme kde na tejto strane	
 				for (int k = 0; k < BOARD_Y_MAX; k++)
 				{
-					int diff =board.board[0][j][k].get_y() - y_coord;  
+					float diff =board.board[0][j][k].get_y() - y_coord;  
 					if (( diff <= TOKEN_HEIGTH/2)&&(diff>= -TOKEN_HEIGTH/2))
 					{
 						found = true;
@@ -1206,7 +1206,7 @@ Tower::~Tower(){}
 void Place::reset()
 {
 	occupied_by = NULL;
-	sum = NULL;
+	sum = 0;
 	for (int i =0; i < PLAYERS; i++)
 		players_attack[i] = 0;
 }
