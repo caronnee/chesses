@@ -376,6 +376,7 @@ bool ProcessEventHost()
 			buf[3] = htonl(chessboard->last_move.second.x);
 			buf[4] = htonl(chessboard->last_move.second.y);
 			buf[5] = htonl(chessboard->last_move.second.z);
+			std::cout << chessboard->last_move.first.x <<" " << chessboard->last_move.first.y << " " << chessboard->last_move.first.z << "\t" <<  chessboard->last_move.second.x <<" " << chessboard->last_move.second.y << " " << chessboard->last_move.second.z;
 			for (unsigned int i = 0; i < fds.size();i++)
 				std::cout << write(fds[i],buf,sizeof(int)*10) << "posielam tolkoto bajtov"<<std::endl;
 		}
@@ -502,7 +503,7 @@ bool ProcessEventJoin()
 				buf2[3]=htonl(chessboard->last_move.second.x);
 				buf2[4]=htonl(chessboard->last_move.second.y);
 				buf2[5]=htonl(chessboard->last_move.second.z);
-				int sz = write(fd,buf2,sizeof(buf2));
+				int sz = write(fd,buf2,sizeof(buf2)*6);
 				std::cerr << sz << "__" <<std::endl;
 			}
 			continue;
@@ -518,7 +519,7 @@ bool ProcessEventJoin()
 		if (res == -1)
 		{
 			perror("select()");
-			exit(1);
+			return false;
 		}
 		if (FD_ISSET(fd, &rfdset))
 		{
@@ -536,7 +537,6 @@ bool ProcessEventJoin()
 			Triple t1(ntohl(buf3[0]),ntohl(buf3[1]),ntohl(buf3[2]));
 			Triple t2(ntohl(buf3[3]),ntohl(buf3[4]),ntohl(buf3[5]));
 			std::cout << (unsigned int) t1.x << " "<< t1.y << " "<< t1.z << " "<< t2.x << " "<< t2.y << " " << t2.z << std::endl;
-			exit(8);
 			chessboard->pick_up_figure(t1);
 			chessboard->pick_up_figure(t2);
 		}

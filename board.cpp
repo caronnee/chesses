@@ -1012,8 +1012,6 @@ bool Board::pick_up_figure(Triple new_choose)
 		f->unchoosed();
 		if (!f->move(&board,new_choose)) //ak sa nepodarilo presunut,
 		{
-			last_move.first = choosed;
-			last_move.second = new_choose;
 			draw_board();
 			Figure * f2 = board[new_choose].occupied();
 			if (f2!=NULL) //a sucasne je owner na tahu
@@ -1030,6 +1028,8 @@ bool Board::pick_up_figure(Triple new_choose)
 		else 
 		{
 			moved = true;
+			last_move.first = choosed;
+			last_move.second = new_choose;
 			if (f->moves().size() == 0)
 			{
 				//promote!
