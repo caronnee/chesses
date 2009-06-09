@@ -13,6 +13,7 @@
 #define BOARD_Y_MAX 4
 
 extern SDL_Surface * screen;
+extern SDL_Event event;
 
 struct DoubleLinkItem
 {

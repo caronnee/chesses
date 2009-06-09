@@ -1040,46 +1040,45 @@ bool Board::pick_up_figure(Triple new_choose)
 						break;
 				while (!promoted)
 				{
-				SDL_Event e;
-				SDL_WaitEvent(&e);
-				switch (e.type)
-				{
-					case SDL_KEYDOWN:
-						switch(e.key.keysym.sym)
-						{
-							case SDLK_ESCAPE:
-								return false;
-								break;
+					SDL_WaitEvent(&event);
+					switch (event.type)
+					{
+						case SDL_KEYDOWN:
+							switch(event.key.keysym.sym)
+							{
+								case SDLK_ESCAPE:
+									return false;
+									break;
 
-							case SDLK_q:
-								promoted = true;
-								f->clear(&board);
-								delete f;
-								figures[ID] = new Queen(new_choose);
-								break;
-							case SDLK_t:
-								promoted = true;
-								f->clear(&board);
-								delete f;
-								figures[ID] = new Tower(new_choose);
-								break;
-							case SDLK_j:
-								promoted = true;
-								f->clear(&board);
-								delete f;
-								figures[ID] = new Jumper(new_choose);
-								break;			
-							case SDLK_b:
-								promoted = true;
-								f->clear(&board);
-								delete f;
-								figures[ID] = new Bishop(new_choose);
-								break;
-							default:
-								break;
-						}
-						break;
-					case SDL_QUIT:
+								case SDLK_q:
+									promoted = true;
+									f->clear(&board);
+									delete f;
+									figures[ID] = new Queen(new_choose);
+									break;
+								case SDLK_t:
+									promoted = true;
+									f->clear(&board);
+									delete f;
+									figures[ID] = new Tower(new_choose);
+									break;
+								case SDLK_j:
+									promoted = true;
+									f->clear(&board);
+									delete f;
+									figures[ID] = new Jumper(new_choose);
+									break;			
+								case SDLK_b:
+									promoted = true;
+									f->clear(&board);
+									delete f;
+									figures[ID] = new Bishop(new_choose);
+									break;
+								default:
+									break;
+							}
+							break;
+						case SDL_QUIT:
 						return false;
 						break;
 
