@@ -35,6 +35,8 @@
 #define PORT 10001
 
 SDL_Surface *screen;
+SDL_Event event;
+
 Board * chessboard;
 std::vector<int> fds;
 bool done;
@@ -43,12 +45,11 @@ int owner;
 
 bool cancel()
 {
-	SDL_Event e;
-	while(SDL_PollEvent(&e))
+	while(SDL_PollEvent(&event))
 	{
-	if ((e.type == SDL_KEYDOWN)&&
-		((e.key.keysym.sym == SDLK_ESCAPE)
-		 || e.key.keysym.sym == SDLK_q))
+	if ((event.type == SDL_KEYDOWN)&&
+		((event.key.keysym.sym == SDLK_ESCAPE)
+		 || event.key.keysym.sym == SDLK_q))
 		return true;
 	}
 	return false;
@@ -196,8 +197,6 @@ void Destroy()
 
 int ProcessEvent()
 {
-	SDL_Event event;
-
 	while(SDL_PollEvent(&event))
 	{
 		switch(event.type)
@@ -251,7 +250,6 @@ enum Menu
 };
 int menu()
 {
-	SDL_Event event;
 	while(SDL_WaitEvent(&event))
 	{
 		switch(event.type)
@@ -433,16 +431,15 @@ bool ProcessSetJoin()
 	//bool done = false;
 	std::string user_port;
 	std::string server_name;
-	SDL_Event e;
 	bool ok1=false;
 	while(true)
 	{
-		SDL_WaitEvent(&e);
-		switch(e.type)
+		SDL_WaitEvent(&event);
+		switch(event.type)
 		{
 			case SDL_KEYDOWN:
 				{
-					switch (e.key.keysym.sym)
+					switch (event.key.keysym.sym)
 					{
 						case SDLK_ESCAPE:
 							return false;
@@ -456,9 +453,9 @@ bool ProcessSetJoin()
 							else server_name.erase(server_name.length()-1,1);
 						default:
 							if (ok1)
-								user_port+=e.key.keysym.sym;
+								user_port+=event.key.keysym.sym;
 							else
-								server_name+=e.key.keysym.sym;
+								server_name+=event.key.keysym.sym;
 					}
 				}
 		}
