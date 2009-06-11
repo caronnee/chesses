@@ -50,6 +50,8 @@ bool cancel()
 		std::cout << "\t\t\t\tEVENT!" <<std::endl;
 		if (event.type == SDL_KEYDOWN)
 			std::cout << " \t\t\t\tKEYEVENT!" <<std::endl;
+		if ( event.type == SDL_QUIT )
+			return true;
 		if ((event.type == SDL_KEYDOWN)&&
 				((event.key.keysym.sym == SDLK_ESCAPE)
 				 || event.key.keysym.sym == SDLK_q))
@@ -110,6 +112,7 @@ int server()
 			return -1;
 		}
 	}
+	std::cout << max <<std::endl;
 	std::cerr<< "mmmm";
 	return 0;
 }
@@ -296,39 +299,56 @@ int talk(Triple * t1, Triple * t2)
 	int sz;
 	fd_set rfdset,efdset;
 	timeval delay;
-	delay.tv_sec = 1;
 	FD_ZERO(&rfdset);
 	for (size_t i = 0; i< fds.size(); i++)
 		FD_SET(fds[i], &rfdset);
 	efdset = rfdset;
+	std::cout << "Begin waiting" <<std::endl;
+	delay.tv_sec = 1;
+	delay.tv_usec = 0;
 	sock = select (max + 1, &rfdset, NULL, &efdset, &delay);
+	std::cout << sock << " ";
+	std::cout << "End waiting" <<std::endl;
+	if (sock == -1)
+	{
+		std::cout << strerror(errno) <<std::endl;
+		return -1;
+	}
+	int state = 0;
 	if (sock > 0)//mame odpoved
 	{
+		
+		bool ex = false;
 		std::cout << "IN" << std::endl;
 		for (size_t i =0; i< fds.size(); i++)
 			if (FD_ISSET(fds[i],&rfdset))
 			{
 				int buf[10];
 				sz = read(fds[i],buf,sizeof(int)*6);
-				if (sz==10)//mame triple
+				if (sz == 0)
+				{
+					ex = true;
+					std::cout << "vypadol user" << i << std::endl; //TODO zneplatnit usera
+				}
+				if (sz==sizeof(int)*6)//mame triple
 				{
 					printf("mam");
 					(*t1) = Triple(ntohl(buf[0]),ntohl(buf[1]),ntohl(buf[2]));
 					(*t2) = Triple(ntohl(buf[3]),ntohl(buf[4]),ntohl(buf[5]));
+					state = 1;
 				}
 			}
-		bool ex = false;
 		for (size_t i =0; i< fds.size(); i++)
 			if (FD_ISSET(fds[i],&efdset))
 			{
 				ex = true;
-				std::cout << "vypadol user" << i << std::endl;
+				std::cout << "Asi spatny prenos od usera" << i << std::endl; //TODO dorobit pre nestandartnu siet
 				exit(2);
 			}
 		if (ex)
 			return -1;
 	}
-	return 0; //TODO nejake vynimky
+	return state; //TODO nejake vynimky
 }
 
 bool ProcessEventHost()
@@ -341,28 +361,26 @@ bool ProcessEventHost()
 	if (chessboard->on_turn.val()!=0)//prijimac sockety a rozposielal dalej
 	{
 		int bufxxx[10];
-		std::cerr << "------------" << chessboard->on_turn.val();
-	
 		Triple t1,t2;
 	       	int res	= talk(&t1, &t2);
 		if (res == -1) //chyba kecania
 			return false;
 		if (res == 0)
 		{
-			std::cerr << "@returnujem" <<std::endl;
 			return true;
 		}
 		std::cerr << "picking up figure" <<std::endl;
+		int iter = chessboard->on_turn.val()%2;//na rade je 0-> bola 1 a posle sa 1, 2-? na rade bola 1 a posle sa 0 alias 2:)
 		chessboard->pick_up_figure(t1);
 		chessboard->pick_up_figure(t2);
-		int iter = chessboard->on_turn.val()%2;//na rade je 0-> bola 1 a posle sa 1, 2-? na rade bola 1 a posle sa 0 alias 2:)
 		bufxxx[0] = htonl(t1.x);bufxxx[1] = htonl(t1.y);bufxxx[2] = htonl(t1.z);
 		bufxxx[3] = htonl(t2.x);bufxxx[4] = htonl(t2.y);bufxxx[5] = htonl(t2.z);
-		std::cout << "velkost " << sizeof(bufxxx) <<std::endl;
 		res = write(fds[iter], bufxxx, sizeof(int)*6);
+		std::cout << "velkost " << res<<"posielam cislu:"<<iter <<std::endl;
 		if (res == -1)
 		{
 			std::cerr<<"write bad"<< std::endl;
+			exit(3);
 		}
 	}
 	else 
@@ -428,7 +446,6 @@ bool client()
 		perror("connect()");
 		return false;
 	};
-	std::cerr << "Returning from client" <<std::endl;
 	return true;
 }
 bool ProcessSetJoin()
@@ -488,7 +505,7 @@ bool ProcessEventJoin()
 	int res;
 	while (true)
 	{
-		std::cerr << owner << "\t";
+		std::cerr <<"owner:"<< owner << "\t";
 		if (cancel())
 			return true;
 		if (chessboard->on_turn.val() == owner)
@@ -517,6 +534,7 @@ bool ProcessEventJoin()
 		timeval t;
 		int buf4[10];
 		t.tv_sec = 1;
+		t.tv_usec = 0;
 		res = select (fd + 1, &rfdset, NULL, &efdset, &t);
 		if (res == -1)
 		{
@@ -541,6 +559,7 @@ bool ProcessEventJoin()
 			std::cout << t1.x << " "<< t1.y << " "<< t1.z << " "<< t2.x << " "<< t2.y << " " << t2.z << std::endl;
 			chessboard->pick_up_figure(t1);
 			chessboard->pick_up_figure(t2);
+			chessboard->moved = false;
 		}
 		std::cout <<"waiting" <<chessboard->on_turn.val()<< std::endl;
 	}
@@ -630,7 +649,7 @@ int main(int argc, char *argv[])
 			if(!ok)
 			{
 				printf("Nepodarilo sa pripojit");
-				break;
+				continue;
 			}
 			chessboard = new Board();
 			chessboard->draw_board();
